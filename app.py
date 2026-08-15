@@ -89,22 +89,26 @@ master_df["Contract_Efficiency_Gap"] = (
 # HEADER
 # =========================================================
 
+# =========================================================
+# HOMEPAGE / HERO SECTION
+# =========================================================
+
 st.title("🏀 NBA Player Value Analytics")
 
-st.subheader(
-    "Measuring NBA player performance relative to contract cost"
+st.markdown(
+    "### Who is actually worth what they're being paid?"
 )
 
 st.write(
     """
-    NBA Player Value Analytics is a sports business analytics project
-    designed to evaluate how much basketball value a player provides
-    relative to the money his team is paying him.
+    NBA Player Value Analytics is an independent sports analytics
+    project that measures player performance against contract cost.
 
-    Rather than simply ranking the best players in the NBA, this model
-    separates player performance from contract efficiency by combining
-    offensive production, defensive performance, availability,
-    efficiency, and salary.
+    The model combines **offense, defense, availability, efficiency,
+    and salary** to answer a question that traditional NBA rankings
+    don't:
+    
+    **Which players provide the most basketball value for the money?**
     """
 )
 
@@ -125,7 +129,7 @@ with col1:
 
 with col2:
     st.metric(
-        "Value-Qualified Players",
+        "Qualified Contracts",
         f"{len(leaderboard_df):,}"
     )
 
@@ -133,7 +137,7 @@ with col3:
     best_value_player = leaderboard_df.iloc[0]["Player"]
 
     st.metric(
-        "Best Contract Value",
+        "#1 Contract Value",
         best_value_player
     )
 
@@ -143,7 +147,7 @@ with col4:
     ]
 
     st.metric(
-        "Highest Player Score",
+        "#1 Overall Player",
         best_player_row["Player"]
     )
 
