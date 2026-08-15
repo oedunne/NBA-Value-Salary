@@ -232,24 +232,25 @@ with tab1:
         """
     )
 with st.expander("📖 Metric Key"):
-    st.markdown(
-        """
-        **OVS — Offensive Value Score**  
-        Measures offensive production and efficiency.
+        st.markdown(
+            """
+            **OVS — Offensive Value Score**  
+            Measures offensive production and efficiency.
 
-        **DVS — Defensive Value Score**  
-        Measures defensive production and impact.
+            **DVS — Defensive Value Score**  
+            Measures defensive production and impact.
 
-        **AVS — Availability Value Score**  
-        Measures availability, playing time, and efficiency.
+            **AVS — Availability Value Score**  
+            Measures availability, playing time, and efficiency.
 
-        **Overall Player Score**  
-        Combines OVS, DVS, and AVS into one performance rating.
+            **Overall Player Score**  
+            Combines OVS, DVS, and AVS into one performance rating.
 
-        **Final Value Score**  
-        Measures player performance relative to contract cost.
-        """
-    )
+            **Final Value Score**  
+            Measures player performance relative to contract cost.
+            """
+        )
+
 
     # -----------------------------------------------------
     # SEARCH
