@@ -156,6 +156,50 @@ st.divider()
 
 
 # =========================================================
+# HOW THE MODEL WORKS
+# =========================================================
+
+st.subheader("How the Model Works")
+
+st.write(
+    """
+    Player statistics are transformed into three performance scores,
+    combined into an Overall Player Score, and then compared against
+    salary to measure contract value.
+    """
+)
+
+step1, step2, step3, step4, step5 = st.columns(5)
+
+with step1:
+    st.markdown("### 📊")
+    st.markdown("**NBA Statistics**")
+    st.caption("2025–26 performance data")
+
+with step2:
+    st.markdown("### →")
+    st.markdown("**OVS · DVS · AVS**")
+    st.caption("Offense, defense & availability")
+
+with step3:
+    st.markdown("### →")
+    st.markdown("**Player Score**")
+    st.caption("36% offense · 34% defense · 30% availability")
+
+with step4:
+    st.markdown("### →")
+    st.markdown("**Salary Adjustment**")
+    st.caption("2026–27 contract cost")
+
+with step5:
+    st.markdown("### 🏆")
+    st.markdown("**Contract Value**")
+    st.caption("Performance relative to cost")
+
+st.divider()
+
+
+# =========================================================
 # NAVIGATION
 # =========================================================
 
