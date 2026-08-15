@@ -141,7 +141,36 @@ with tab1:
         hide_index=True
     )
 
+    st.divider()
 
+    # =====================================================
+    # SALARY VS PERFORMANCE CHART
+    # =====================================================
+
+    st.subheader("Salary vs. Player Performance")
+
+    st.write(
+        """
+        This chart compares each player's Overall Player Score
+        with his annual salary. Players farther toward the
+        upper-left provide stronger performance at a lower cost.
+        """
+    )
+
+    chart_df = master_df[
+        [
+            "Player",
+            "Salary",
+            "Overall_Player_Score"
+        ]
+    ].dropna().copy()
+
+    st.scatter_chart(
+        chart_df,
+        x="Salary",
+        y="Overall_Player_Score",
+        size=80
+    )
 # =========================================================
 # TAB 2 — PURE PLAYER PERFORMANCE
 # =========================================================
