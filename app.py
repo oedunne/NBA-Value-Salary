@@ -191,7 +191,7 @@ with tab1:
     )
 
 
-        # =====================================================
+    # =====================================================
     # SALARY VS PERFORMANCE VALUE QUADRANT
     # =====================================================
 
@@ -206,9 +206,6 @@ with tab1:
 
         The white dashed lines represent the **median salary**
         and **median Overall Player Score** in the dataset.
-
-        Players toward the upper-left combine stronger performance
-        with a lower salary.
 
         Hover over any point to identify the player and view his
         salary, Overall Player Score, and Contract Value Score.
@@ -228,9 +225,14 @@ with tab1:
         ]
     ].dropna().copy()
 
-    # Calculate league medians
     median_salary = chart_df["Salary"].median()
     median_player_score = chart_df["Overall_Player_Score"].median()
+
+    max_salary = chart_df["Salary"].max()
+    min_salary = chart_df["Salary"].min()
+
+    max_score = chart_df["Overall_Player_Score"].max()
+    min_score = chart_df["Overall_Player_Score"].min()
 
 
     # -----------------------------------------------------
@@ -290,14 +292,12 @@ with tab1:
     # MEDIAN SALARY LINE
     # -----------------------------------------------------
 
-    salary_line_data = pd.DataFrame(
-        {
-            "Median Salary": [median_salary]
-        }
-    )
-
     salary_line = (
-        alt.Chart(salary_line_data)
+        alt.Chart(
+            pd.DataFrame(
+                {"Median Salary": [median_salary]}
+            )
+        )
         .mark_rule(
             strokeDash=[7, 7],
             strokeWidth=2.5,
@@ -305,9 +305,7 @@ with tab1:
             opacity=0.9
         )
         .encode(
-            x=alt.X(
-                "Median Salary:Q"
-            )
+            x="Median Salary:Q"
         )
     )
 
@@ -316,14 +314,12 @@ with tab1:
     # MEDIAN PLAYER SCORE LINE
     # -----------------------------------------------------
 
-    score_line_data = pd.DataFrame(
-        {
-            "Median Score": [median_player_score]
-        }
-    )
-
     score_line = (
-        alt.Chart(score_line_data)
+        alt.Chart(
+            pd.DataFrame(
+                {"Median Score": [median_player_score]}
+            )
+        )
         .mark_rule(
             strokeDash=[7, 7],
             strokeWidth=2.5,
@@ -331,21 +327,82 @@ with tab1:
             opacity=0.9
         )
         .encode(
-            y=alt.Y(
-                "Median Score:Q"
-            )
+            y="Median Score:Q"
         )
     )
 
 
     # -----------------------------------------------------
-    # COMBINE CHART
+    # QUADRANT LABEL POSITIONS
+    # -----------------------------------------------------
+
+    left_x = min_salary + (
+        (median_salary - min_salary) * 0.35
+    )
+
+    right_x = median_salary + (
+        (max_salary - median_salary) * 0.50
+    )
+
+    top_y = median_player_score + (
+        (max_score - median_player_score) * 0.75
+    )
+
+    bottom_y = min_score + (
+        (median_player_score - min_score) * 0.25
+    )
+
+
+    quadrant_labels = pd.DataFrame(
+        {
+            "Salary": [
+                left_x,
+                right_x,
+                left_x,
+                right_x
+            ],
+
+            "Score": [
+                top_y,
+                top_y,
+                bottom_y,
+                bottom_y
+            ],
+
+            "Label": [
+                "HIGH VALUE",
+                "EXPENSIVE STARS",
+                "LOW-COST ROLE PLAYERS",
+                "POOR CONTRACT VALUE"
+            ]
+        }
+    )
+
+
+    labels = (
+        alt.Chart(quadrant_labels)
+        .mark_text(
+            fontSize=15,
+            fontWeight="bold",
+            opacity=0.75
+        )
+        .encode(
+            x="Salary:Q",
+            y="Score:Q",
+            text="Label:N"
+        )
+    )
+
+
+    # -----------------------------------------------------
+    # COMBINE EVERYTHING
     # -----------------------------------------------------
 
     value_quadrant_chart = (
         points
         + salary_line
         + score_line
+        + labels
     ).properties(
         height=525
     ).interactive()
