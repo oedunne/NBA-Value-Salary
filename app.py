@@ -58,7 +58,32 @@ def load_data():
 
 
 leaderboard_df, master_df = load_data()
+# =========================================================
+# CONTRACT / PERFORMANCE PERCENTILES
+# =========================================================
 
+# Performance percentile:
+# What percentage of players have a lower Overall Player Score?
+master_df["Performance_Percentile"] = (
+    master_df["Overall_Player_Score"]
+    .rank(pct=True)
+    * 100
+)
+
+# Salary percentile:
+# What percentage of players earn less?
+master_df["Salary_Percentile"] = (
+    master_df["Salary"]
+    .rank(pct=True)
+    * 100
+)
+
+# Positive = performance exceeds salary percentile
+# Negative = salary exceeds performance percentile
+master_df["Contract_Efficiency_Gap"] = (
+    master_df["Performance_Percentile"]
+    - master_df["Salary_Percentile"]
+)
 
 # =========================================================
 # HEADER
@@ -500,7 +525,249 @@ with tab1:
         top_10_chart,
         use_container_width=True
     )
+    # =====================================================
+    # ELITE BARGAINS VS LEAST EFFICIENT CONTRACTS
+    # =====================================================
 
+    st.divider()
+
+    st.header("Contract Efficiency Analysis")
+
+    st.write(
+        """
+        Value can mean different things depending on the question.
+
+        **Elite Bargains** identifies players performing in the
+        top 20% of the NBA according to the model, then determines
+        which of those players provide the greatest contract value.
+
+        **Least Efficient Contracts** identifies highly paid players
+        whose performance falls below the league median.
+        """
+    )
+
+
+    # =====================================================
+    # BUILD THE TWO GROUPS
+    # =====================================================
+
+    elite_bargains = (
+        master_df[
+            master_df["Performance_Percentile"] >= 80
+        ]
+        .sort_values(
+            "Final_Value_Score",
+            ascending=False
+        )
+        .head(10)
+        .copy()
+    )
+
+
+    least_efficient = (
+        master_df[
+            (master_df["Salary_Percentile"] >= 80)
+            &
+            (master_df["Performance_Percentile"] < 50)
+        ]
+        .sort_values(
+            "Contract_Efficiency_Gap",
+            ascending=True
+        )
+        .head(10)
+        .copy()
+    )
+
+
+    # =====================================================
+    # TWO COLUMNS
+    # =====================================================
+
+    bargain_col, inefficient_col = st.columns(2)
+
+
+    # =====================================================
+    # ELITE BARGAINS
+    # =====================================================
+
+    with bargain_col:
+
+        st.subheader("💎 Elite Bargains")
+
+        st.caption(
+            "Top-20% performers ranked by Contract Value Score"
+        )
+
+        bargain_chart = (
+            alt.Chart(elite_bargains)
+            .mark_bar()
+            .encode(
+
+                x=alt.X(
+                    "Final_Value_Score:Q",
+                    title="Value Score"
+                ),
+
+                y=alt.Y(
+                    "Player:N",
+                    title=None,
+                    sort="-x"
+                ),
+
+                tooltip=[
+                    alt.Tooltip(
+                        "Player:N",
+                        title="Player"
+                    ),
+
+                    alt.Tooltip(
+                        "Performance_Percentile:Q",
+                        title="Performance Percentile",
+                        format=".1f"
+                    ),
+
+                    alt.Tooltip(
+                        "Salary_Percentile:Q",
+                        title="Salary Percentile",
+                        format=".1f"
+                    ),
+
+                    alt.Tooltip(
+                        "Overall_Player_Score:Q",
+                        title="Overall Player Score",
+                        format=".2f"
+                    ),
+
+                    alt.Tooltip(
+                        "Salary:Q",
+                        title="Annual Salary",
+                        format="$,.0f"
+                    ),
+
+                    alt.Tooltip(
+                        "Final_Value_Score:Q",
+                        title="Value Score",
+                        format=".2f"
+                    )
+                ]
+            )
+            .properties(
+                height=400
+            )
+        )
+
+        st.altair_chart(
+            bargain_chart,
+            use_container_width=True
+        )
+
+
+    # =====================================================
+    # LEAST EFFICIENT CONTRACTS
+    # =====================================================
+
+    with inefficient_col:
+
+        st.subheader("💸 Least Efficient Contracts")
+
+        st.caption(
+            "Top-20% salaries with below-median performance"
+        )
+
+        inefficient_chart = (
+            alt.Chart(least_efficient)
+            .mark_bar()
+            .encode(
+
+                x=alt.X(
+                    "Contract_Efficiency_Gap:Q",
+                    title="Performance − Salary Percentile Gap"
+                ),
+
+                y=alt.Y(
+                    "Player:N",
+                    title=None,
+                    sort="x"
+                ),
+
+                tooltip=[
+                    alt.Tooltip(
+                        "Player:N",
+                        title="Player"
+                    ),
+
+                    alt.Tooltip(
+                        "Salary:Q",
+                        title="Annual Salary",
+                        format="$,.0f"
+                    ),
+
+                    alt.Tooltip(
+                        "Salary_Percentile:Q",
+                        title="Salary Percentile",
+                        format=".1f"
+                    ),
+
+                    alt.Tooltip(
+                        "Performance_Percentile:Q",
+                        title="Performance Percentile",
+                        format=".1f"
+                    ),
+
+                    alt.Tooltip(
+                        "Overall_Player_Score:Q",
+                        title="Overall Player Score",
+                        format=".2f"
+                    ),
+
+                    alt.Tooltip(
+                        "Contract_Efficiency_Gap:Q",
+                        title="Efficiency Gap",
+                        format="+.1f"
+                    )
+                ]
+            )
+            .properties(
+                height=400
+            )
+        )
+
+        st.altair_chart(
+            inefficient_chart,
+            use_container_width=True
+        )
+
+
+    # =====================================================
+    # EXPLANATION
+    # =====================================================
+
+    with st.expander("How are these groups defined?"):
+
+        st.markdown(
+            """
+            **💎 Elite Bargains**
+
+            1. Player must rank in the **80th percentile or higher**
+               in Overall Player Score.
+            2. Qualifying players are ranked by the model's
+               **Final Value Score**.
+            3. This identifies high-level players whose contracts
+               provide particularly strong value.
+
+            **💸 Least Efficient Contracts**
+
+            1. Player salary must rank in the **80th percentile
+               or higher**.
+            2. Player performance must rank **below the 50th
+               percentile**.
+            3. Players are ranked by the gap between their
+               Performance Percentile and Salary Percentile.
+
+            A larger negative gap indicates a greater mismatch
+            between salary and measured performance.
+            """
+        )
 
 # =========================================================
 # TAB 2 — PURE PLAYER PERFORMANCE
