@@ -1,2 +1,2 @@
 # NBA-Value-Salary
-Analyzes NBA player's value proportionate to how much money they make (yearly).
+Analyzes NBA players' value proportionate to how much money they make on a per-game basis
