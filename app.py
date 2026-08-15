@@ -28,25 +28,24 @@ MINIMUM_PLAYER_SCORE = 60
 
 @st.cache_data
 def load_data():
-
     leaderboard = pd.read_csv("nba_value_leaderboard.csv")
     master = pd.read_csv("nba_value_master_database.csv")
 
-    # Make sure salary columns are numeric
+    # Make sure salary is numeric
     master["Salary"] = pd.to_numeric(
         master["Salary"],
         errors="coerce"
     )
 
-    master["Salary_Per_Game"] = (
-        master["Salary"] / 82
-    )
+    # Recalculate salary per game
+    master["Salary_Per_Game"] = master["Salary"] / 82
 
+    # Salary per game expressed in $100,000 units
     master["Salary_Per_Game_100K"] = (
         master["Salary_Per_Game"] / 100000
     )
 
-    # Recalculate the official Version 1 value formula
+    # Official Version 1 value formula
     master["Final_Value_Score"] = (
         master["Overall_Player_Score"]
         / (
@@ -79,8 +78,8 @@ st.write(
 
     Rather than simply ranking the best players in the NBA, this model
     separates player performance from contract efficiency by combining
-    offensive production, defensive performance, availability, efficiency,
-    and salary.
+    offensive production, defensive performance, availability,
+    efficiency, and salary.
     """
 )
 
@@ -106,7 +105,6 @@ with col2:
     )
 
 with col3:
-
     best_value_player = leaderboard_df.iloc[0]["Player"]
 
     st.metric(
@@ -115,7 +113,6 @@ with col3:
     )
 
 with col4:
-
     best_player_row = master_df.loc[
         master_df["Overall_Player_Score"].idxmax()
     ]
@@ -161,6 +158,7 @@ with tab1:
         """
     )
 
+
     # -----------------------------------------------------
     # SEARCH
     # -----------------------------------------------------
@@ -174,7 +172,6 @@ with tab1:
     value_display = leaderboard_df.copy()
 
     if search_value:
-
         value_display = value_display[
             value_display["Player"]
             .str.contains(
@@ -191,7 +188,7 @@ with tab1:
     )
 
 
-      # =====================================================
+    # =====================================================
     # SALARY VS PERFORMANCE VALUE QUADRANT
     # =====================================================
 
@@ -212,6 +209,7 @@ with tab1:
         """
     )
 
+
     # -----------------------------------------------------
     # PREPARE CHART DATA
     # -----------------------------------------------------
@@ -226,7 +224,9 @@ with tab1:
     ].dropna().copy()
 
     median_salary = chart_df["Salary"].median()
-    median_player_score = chart_df["Overall_Player_Score"].median()
+    median_player_score = chart_df[
+        "Overall_Player_Score"
+    ].median()
 
     max_salary = chart_df["Salary"].max()
     min_salary = chart_df["Salary"].min()
@@ -246,7 +246,6 @@ with tab1:
             opacity=0.75
         )
         .encode(
-
             x=alt.X(
                 "Salary:Q",
                 title="Annual Salary",
@@ -295,7 +294,11 @@ with tab1:
     salary_line = (
         alt.Chart(
             pd.DataFrame(
-                {"Median Salary": [median_salary]}
+                {
+                    "Median Salary": [
+                        median_salary
+                    ]
+                }
             )
         )
         .mark_rule(
@@ -317,7 +320,11 @@ with tab1:
     score_line = (
         alt.Chart(
             pd.DataFrame(
-                {"Median Score": [median_player_score]}
+                {
+                    "Median Score": [
+                        median_player_score
+                    ]
+                }
             )
         )
         .mark_rule(
@@ -381,12 +388,11 @@ with tab1:
 
     labels = (
         alt.Chart(quadrant_labels)
-        ..mark_text(
-    fontSize=13,
-    fontWeight="normal",
-    color="white",
-    opacity=0.70
-)
+        .mark_text(
+            fontSize=13,
+            fontWeight="normal",
+            color="white",
+            opacity=0.70
         )
         .encode(
             x="Salary:Q",
@@ -397,7 +403,7 @@ with tab1:
 
 
     # -----------------------------------------------------
-    # COMBINE EVERYTHING
+    # COMBINE CHART
     # -----------------------------------------------------
 
     value_quadrant_chart = (
@@ -416,14 +422,12 @@ with tab1:
     )
 
 
-    # -----------------------------------------------------
-    # BENCHMARK INFORMATION
-    # -----------------------------------------------------
-
     st.caption(
         f"Median Annual Salary: ${median_salary:,.0f}   |   "
         f"Median Overall Player Score: {median_player_score:.2f}"
     )
+
+
 # =========================================================
 # TAB 2 — PURE PLAYER PERFORMANCE
 # =========================================================
@@ -484,7 +488,6 @@ with tab2:
         "AVS",
         "Overall_Player_Score"
     ]:
-
         performance_df[column] = (
             performance_df[column]
             .round(2)
@@ -499,7 +502,6 @@ with tab2:
 
 
     if performance_search:
-
         performance_df = performance_df[
             performance_df["Player"]
             .str.contains(
@@ -555,15 +557,14 @@ with tab3:
     st.subheader(selected_player)
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # PLAYER SCORE CARDS
-    # =====================================================
+    # -----------------------------------------------------
 
     score1, score2, score3, score4 = st.columns(4)
 
 
     with score1:
-
         st.metric(
             "OVS",
             f"{player_data['OVS']:.2f}"
@@ -571,7 +572,6 @@ with tab3:
 
 
     with score2:
-
         st.metric(
             "DVS",
             f"{player_data['DVS']:.2f}"
@@ -579,7 +579,6 @@ with tab3:
 
 
     with score3:
-
         st.metric(
             "AVS",
             f"{player_data['AVS']:.2f}"
@@ -587,16 +586,15 @@ with tab3:
 
 
     with score4:
-
         st.metric(
             "Overall Player Score",
             f"{player_data['Overall_Player_Score']:.2f}"
         )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # CONTRACT INFORMATION
-    # =====================================================
+    # -----------------------------------------------------
 
     st.subheader("Contract")
 
@@ -604,7 +602,6 @@ with tab3:
 
 
     with contract1:
-
         st.metric(
             "Annual Salary",
             f"${player_data['Salary']:,.0f}"
@@ -612,7 +609,6 @@ with tab3:
 
 
     with contract2:
-
         st.metric(
             "Salary Per Game",
             f"${player_data['Salary_Per_Game']:,.0f}"
@@ -625,14 +621,12 @@ with tab3:
             player_data["Overall_Player_Score"]
             >= MINIMUM_PLAYER_SCORE
         ):
-
             st.metric(
                 "Value Score",
                 f"{player_data['Final_Value_Score']:.2f}"
             )
 
         else:
-
             st.metric(
                 "Value Score",
                 "Not Qualified"
@@ -642,9 +636,9 @@ with tab3:
     st.divider()
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # UNDERLYING STATISTICS
-    # =====================================================
+    # -----------------------------------------------------
 
     st.subheader("Underlying Statistics")
 
@@ -652,10 +646,7 @@ with tab3:
     offense_col, defense_col, availability_col = st.columns(3)
 
 
-    # -----------------------------------------------------
     # OFFENSE
-    # -----------------------------------------------------
-
     with offense_col:
 
         st.markdown("### 🏀 Offense")
@@ -686,10 +677,7 @@ with tab3:
         )
 
 
-    # -----------------------------------------------------
     # DEFENSE
-    # -----------------------------------------------------
-
     with defense_col:
 
         st.markdown("### 🛡️ Defense")
@@ -710,10 +698,7 @@ with tab3:
         )
 
 
-    # -----------------------------------------------------
     # AVAILABILITY
-    # -----------------------------------------------------
-
     with availability_col:
 
         st.markdown("### ⏱️ Availability")
@@ -756,9 +741,9 @@ with tab4:
     st.divider()
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # STATISTICAL BENCHMARKING
-    # =====================================================
+    # -----------------------------------------------------
 
     st.subheader("1. Statistical Benchmarking")
 
@@ -781,13 +766,11 @@ with tab4:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # OVS
-    # =====================================================
+    # -----------------------------------------------------
 
-    st.subheader(
-        "2. Offensive Value Score — OVS"
-    )
+    st.subheader("2. Offensive Value Score — OVS")
 
     st.write(
         """
@@ -804,13 +787,11 @@ with tab4:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # DVS
-    # =====================================================
+    # -----------------------------------------------------
 
-    st.subheader(
-        "3. Defensive Value Score — DVS"
-    )
+    st.subheader("3. Defensive Value Score — DVS")
 
     st.write(
         """
@@ -825,13 +806,11 @@ with tab4:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # AVS
-    # =====================================================
+    # -----------------------------------------------------
 
-    st.subheader(
-        "4. Availability Value Score — AVS"
-    )
+    st.subheader("4. Availability Value Score — AVS")
 
     st.write(
         """
@@ -846,13 +825,11 @@ with tab4:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # OVERALL PLAYER SCORE
-    # =====================================================
+    # -----------------------------------------------------
 
-    st.subheader(
-        "5. Overall Player Score"
-    )
+    st.subheader("5. Overall Player Score")
 
     st.latex(
         r"""
@@ -876,13 +853,11 @@ with tab4:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # SALARY
-    # =====================================================
+    # -----------------------------------------------------
 
-    st.subheader(
-        "6. Salary Per Game"
-    )
+    st.subheader("6. Salary Per Game")
 
     st.latex(
         r"""
@@ -901,13 +876,11 @@ with tab4:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # VALUE FORMULA
-    # =====================================================
+    # -----------------------------------------------------
 
-    st.subheader(
-        "7. Final Value Score"
-    )
+    st.subheader("7. Final Value Score")
 
     st.write(
         """
@@ -944,13 +917,11 @@ with tab4:
     )
 
 
-    # =====================================================
-    # DATA SOURCES
-    # =====================================================
+    # -----------------------------------------------------
+    # DATA
+    # -----------------------------------------------------
 
-    st.subheader(
-        "8. Data"
-    )
+    st.subheader("8. Data")
 
     st.write(
         """
@@ -966,13 +937,11 @@ with tab4:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # LIMITATIONS
-    # =====================================================
+    # -----------------------------------------------------
 
-    st.subheader(
-        "9. Model Limitations"
-    )
+    st.subheader("9. Model Limitations")
 
     st.write(
         """
