@@ -192,7 +192,7 @@ with tab1:
 
 
     # =====================================================
-    # SALARY VS PERFORMANCE CHART
+    # SALARY VS PERFORMANCE VALUE QUADRANT
     # =====================================================
 
     st.divider()
@@ -204,8 +204,9 @@ with tab1:
         This chart compares each player's overall performance
         with his annual salary.
 
-        Players toward the **upper-left** provide strong basketball
-        performance while carrying a relatively inexpensive contract.
+        The dashed lines represent the median salary and median
+        player score in the dataset, dividing players into four
+        broad value zones.
 
         Hover over any point to identify the player.
         """
@@ -220,31 +221,27 @@ with tab1:
         ]
     ].dropna().copy()
 
+    median_salary = chart_df["Salary"].median()
+    median_player_score = chart_df["Overall_Player_Score"].median()
 
-    salary_chart = (
+    points = (
         alt.Chart(chart_df)
         .mark_circle(
             size=90,
             opacity=0.75
         )
         .encode(
-
-            # X AXIS — SALARY
             x=alt.X(
                 "Salary:Q",
                 title="Annual Salary",
-                axis=alt.Axis(
-                    format="$,.0f"
-                )
+                axis=alt.Axis(format="$,.0f")
             ),
 
-            # Y AXIS — PLAYER SCORE
             y=alt.Y(
                 "Overall_Player_Score:Q",
                 title="Overall Player Score"
             ),
 
-            # HOVER INFORMATION
             tooltip=[
                 alt.Tooltip(
                     "Player:N",
@@ -270,19 +267,53 @@ with tab1:
                 )
             ]
         )
-        .properties(
-            height=525
-        )
-        .interactive()
     )
 
+    salary_line = (
+        alt.Chart(
+            pd.DataFrame(
+                {"Median Salary": [median_salary]}
+            )
+        )
+        .mark_rule(
+            strokeDash=[6, 6]
+        )
+        .encode(
+            x="Median Salary:Q"
+        )
+    )
+
+    score_line = (
+        alt.Chart(
+            pd.DataFrame(
+                {"Median Score": [median_player_score]}
+            )
+        )
+        .mark_rule(
+            strokeDash=[6, 6]
+        )
+        .encode(
+            y="Median Score:Q"
+        )
+    )
+
+    value_quadrant_chart = (
+        points
+        + salary_line
+        + score_line
+    ).properties(
+        height=525
+    ).interactive()
 
     st.altair_chart(
-        salary_chart,
+        value_quadrant_chart,
         use_container_width=True
     )
 
-
+    st.caption(
+        f"Median salary: ${median_salary:,.0f} | "
+        f"Median player score: {median_player_score:.2f}"
+    )
 # =========================================================
 # TAB 2 — PURE PLAYER PERFORMANCE
 # =========================================================
