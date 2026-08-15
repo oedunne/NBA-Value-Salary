@@ -130,11 +130,12 @@ st.divider()
 # NAVIGATION
 # =========================================================
 
-tab1, tab2, tab3, tab4 = st.tabs(
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
         "💰 Value Leaderboard",
         "⭐ Player Rankings",
         "🔎 Player Explorer",
+        "⚔️ Compare Players",
         "🧠 Methodology"
     ]
 )
@@ -791,12 +792,318 @@ with tab3:
             f"{player_data['PER']:.1f}"
         )
 
+# =========================================================
+# TAB 4 — PLAYER COMPARISON
+# =========================================================
 
+with tab4:
+
+    st.header("⚔️ Player Comparison")
+
+    st.write(
+        """
+        Compare two NBA players across performance, contract cost,
+        and contract value.
+        """
+    )
+
+    player_list = sorted(
+        master_df["Player"].dropna().unique()
+    )
+
+    select_col1, select_col2 = st.columns(2)
+
+    with select_col1:
+        player_1_name = st.selectbox(
+            "Player 1",
+            player_list,
+            index=0,
+            key="compare_player_1"
+        )
+
+    with select_col2:
+        player_2_name = st.selectbox(
+            "Player 2",
+            player_list,
+            index=1,
+            key="compare_player_2"
+        )
+
+    player_1 = master_df[
+        master_df["Player"] == player_1_name
+    ].iloc[0]
+
+    player_2 = master_df[
+        master_df["Player"] == player_2_name
+    ].iloc[0]
+
+    st.divider()
+
+
+    # =====================================================
+    # PLAYER NAMES
+    # =====================================================
+
+    name_col1, name_col2 = st.columns(2)
+
+    with name_col1:
+        st.subheader(player_1_name)
+
+    with name_col2:
+        st.subheader(player_2_name)
+
+
+    # =====================================================
+    # OVERALL PLAYER SCORE
+    # =====================================================
+
+    st.markdown("### Overall Player Score")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            player_1_name,
+            f"{player_1['Overall_Player_Score']:.2f}"
+        )
+
+    with col2:
+        st.metric(
+            player_2_name,
+            f"{player_2['Overall_Player_Score']:.2f}"
+        )
+
+
+    # =====================================================
+    # CATEGORY SCORES
+    # =====================================================
+
+    st.markdown("### Performance Breakdown")
+
+    comparison_data = pd.DataFrame(
+        {
+            "Category": [
+                "Offense",
+                "Defense",
+                "Availability"
+            ],
+
+            player_1_name: [
+                player_1["OVS"],
+                player_1["DVS"],
+                player_1["AVS"]
+            ],
+
+            player_2_name: [
+                player_2["OVS"],
+                player_2["DVS"],
+                player_2["AVS"]
+            ]
+        }
+    )
+
+    comparison_long = comparison_data.melt(
+        id_vars="Category",
+        var_name="Player",
+        value_name="Score"
+    )
+
+    comparison_chart = (
+        alt.Chart(comparison_long)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "Category:N",
+                title=None
+            ),
+
+            y=alt.Y(
+                "Score:Q",
+                title="Score"
+            ),
+
+            xOffset="Player:N",
+
+            color=alt.Color(
+                "Player:N",
+                title="Player"
+            ),
+
+            tooltip=[
+                alt.Tooltip(
+                    "Player:N",
+                    title="Player"
+                ),
+
+                alt.Tooltip(
+                    "Category:N",
+                    title="Category"
+                ),
+
+                alt.Tooltip(
+                    "Score:Q",
+                    title="Score",
+                    format=".2f"
+                )
+            ]
+        )
+        .properties(
+            height=400
+        )
+    )
+
+    st.altair_chart(
+        comparison_chart,
+        use_container_width=True
+    )
+
+
+    # =====================================================
+    # CONTRACT COMPARISON
+    # =====================================================
+
+    st.markdown("### Contract Comparison")
+
+    salary_col1, salary_col2 = st.columns(2)
+
+    with salary_col1:
+
+        st.metric(
+            f"{player_1_name} Salary",
+            f"${player_1['Salary']:,.0f}"
+        )
+
+        st.metric(
+            f"{player_1_name} Salary / Game",
+            f"${player_1['Salary_Per_Game']:,.0f}"
+        )
+
+    with salary_col2:
+
+        st.metric(
+            f"{player_2_name} Salary",
+            f"${player_2['Salary']:,.0f}"
+        )
+
+        st.metric(
+            f"{player_2_name} Salary / Game",
+            f"${player_2['Salary_Per_Game']:,.0f}"
+        )
+
+
+    # =====================================================
+    # VALUE SCORE
+    # =====================================================
+
+    st.markdown("### Contract Value")
+
+    value_col1, value_col2 = st.columns(2)
+
+    with value_col1:
+
+        if (
+            player_1["Overall_Player_Score"]
+            >= MINIMUM_PLAYER_SCORE
+        ):
+            st.metric(
+                player_1_name,
+                f"{player_1['Final_Value_Score']:.2f}"
+            )
+        else:
+            st.metric(
+                player_1_name,
+                "Not Qualified"
+            )
+
+    with value_col2:
+
+        if (
+            player_2["Overall_Player_Score"]
+            >= MINIMUM_PLAYER_SCORE
+        ):
+            st.metric(
+                player_2_name,
+                f"{player_2['Final_Value_Score']:.2f}"
+            )
+        else:
+            st.metric(
+                player_2_name,
+                "Not Qualified"
+            )
+
+
+    # =====================================================
+    # RAW STAT COMPARISON
+    # =====================================================
+
+    st.divider()
+
+    st.markdown("### Statistical Comparison")
+
+    stat_comparison = pd.DataFrame(
+        {
+            "Metric": [
+                "True Shooting %",
+                "Offensive Win Shares",
+                "Points Per Game",
+                "Assists Per Game",
+                "Offensive Rebounds/Game",
+                "Defensive Rebounds/Game",
+                "Steals + Blocks/Game",
+                "Defensive Win Shares",
+                "Games Played",
+                "Minutes Per Game",
+                "PER"
+            ],
+
+            player_1_name: [
+                player_1["TS%"],
+                player_1["OWS"],
+                player_1["PPG"],
+                player_1["APG"],
+                player_1["ORPG"],
+                player_1["DRPG"],
+                player_1["Steals_Blocks"],
+                player_1["DWS"],
+                player_1["Games_Played"],
+                player_1["Minutes_Per_Game"],
+                player_1["PER"]
+            ],
+
+            player_2_name: [
+                player_2["TS%"],
+                player_2["OWS"],
+                player_2["PPG"],
+                player_2["APG"],
+                player_2["ORPG"],
+                player_2["DRPG"],
+                player_2["Steals_Blocks"],
+                player_2["DWS"],
+                player_2["Games_Played"],
+                player_2["Minutes_Per_Game"],
+                player_2["PER"]
+            ]
+        }
+    )
+
+    stat_comparison[player_1_name] = (
+        stat_comparison[player_1_name].round(2)
+    )
+
+    stat_comparison[player_2_name] = (
+        stat_comparison[player_2_name].round(2)
+    )
+
+    st.dataframe(
+        stat_comparison,
+        use_container_width=True,
+        hide_index=True
+    )
 # =========================================================
 # TAB 4 — METHODOLOGY
 # =========================================================
 
-with tab4:
+with tab5:
 
     st.header("Methodology")
 
