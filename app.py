@@ -191,7 +191,7 @@ with tab1:
     )
 
 
-    # =====================================================
+        # =====================================================
     # SALARY VS PERFORMANCE VALUE QUADRANT
     # =====================================================
 
@@ -204,13 +204,20 @@ with tab1:
         This chart compares each player's overall performance
         with his annual salary.
 
-        The dashed lines represent the median salary and median
-        player score in the dataset, dividing players into four
-        broad value zones.
+        The white dashed lines represent the **median salary**
+        and **median Overall Player Score** in the dataset.
 
-        Hover over any point to identify the player.
+        Players toward the upper-left combine stronger performance
+        with a lower salary.
+
+        Hover over any point to identify the player and view his
+        salary, Overall Player Score, and Contract Value Score.
         """
     )
+
+    # -----------------------------------------------------
+    # PREPARE CHART DATA
+    # -----------------------------------------------------
 
     chart_df = master_df[
         [
@@ -221,8 +228,14 @@ with tab1:
         ]
     ].dropna().copy()
 
+    # Calculate league medians
     median_salary = chart_df["Salary"].median()
     median_player_score = chart_df["Overall_Player_Score"].median()
+
+
+    # -----------------------------------------------------
+    # PLAYER DOTS
+    # -----------------------------------------------------
 
     points = (
         alt.Chart(chart_df)
@@ -231,10 +244,13 @@ with tab1:
             opacity=0.75
         )
         .encode(
+
             x=alt.X(
                 "Salary:Q",
                 title="Annual Salary",
-                axis=alt.Axis(format="$,.0f")
+                axis=alt.Axis(
+                    format="$,.0f"
+                )
             ),
 
             y=alt.Y(
@@ -269,33 +285,62 @@ with tab1:
         )
     )
 
+
+    # -----------------------------------------------------
+    # MEDIAN SALARY LINE
+    # -----------------------------------------------------
+
+    salary_line_data = pd.DataFrame(
+        {
+            "Median Salary": [median_salary]
+        }
+    )
+
     salary_line = (
-        alt.Chart(
-            pd.DataFrame(
-                {"Median Salary": [median_salary]}
-            )
-        )
+        alt.Chart(salary_line_data)
         .mark_rule(
-            strokeDash=[6, 6]
+            strokeDash=[7, 7],
+            strokeWidth=2.5,
+            color="white",
+            opacity=0.9
         )
         .encode(
-            x="Median Salary:Q"
+            x=alt.X(
+                "Median Salary:Q"
+            )
         )
     )
 
+
+    # -----------------------------------------------------
+    # MEDIAN PLAYER SCORE LINE
+    # -----------------------------------------------------
+
+    score_line_data = pd.DataFrame(
+        {
+            "Median Score": [median_player_score]
+        }
+    )
+
     score_line = (
-        alt.Chart(
-            pd.DataFrame(
-                {"Median Score": [median_player_score]}
-            )
-        )
+        alt.Chart(score_line_data)
         .mark_rule(
-            strokeDash=[6, 6]
+            strokeDash=[7, 7],
+            strokeWidth=2.5,
+            color="white",
+            opacity=0.9
         )
         .encode(
-            y="Median Score:Q"
+            y=alt.Y(
+                "Median Score:Q"
+            )
         )
     )
+
+
+    # -----------------------------------------------------
+    # COMBINE CHART
+    # -----------------------------------------------------
 
     value_quadrant_chart = (
         points
@@ -305,14 +350,20 @@ with tab1:
         height=525
     ).interactive()
 
+
     st.altair_chart(
         value_quadrant_chart,
         use_container_width=True
     )
 
+
+    # -----------------------------------------------------
+    # BENCHMARK INFORMATION
+    # -----------------------------------------------------
+
     st.caption(
-        f"Median salary: ${median_salary:,.0f} | "
-        f"Median player score: {median_player_score:.2f}"
+        f"Median Annual Salary: ${median_salary:,.0f}   |   "
+        f"Median Overall Player Score: {median_player_score:.2f}"
     )
 # =========================================================
 # TAB 2 — PURE PLAYER PERFORMANCE
