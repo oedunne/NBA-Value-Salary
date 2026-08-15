@@ -81,7 +81,23 @@ master_df["Performance_Percentile"] = (
     )
     * 100
 )
+master_df["OVS_Percentile"] = (
+    master_df["OVS"]
+    .rank(pct=True, method="average")
+    * 100
+)
 
+master_df["DVS_Percentile"] = (
+    master_df["DVS"]
+    .rank(pct=True, method="average")
+    * 100
+)
+
+master_df["AVS_Percentile"] = (
+    master_df["AVS"]
+    .rank(pct=True, method="average")
+    * 100
+)
 
 master_df["Salary_Percentile"] = (
     master_df["Salary"]
@@ -1214,37 +1230,32 @@ with tab3:
 
 
     with score1:
+    st.metric(
+        "OVS",
+        f"{player_data['OVS']:.2f}",
+        f"{player_data['OVS_Percentile']:.0f}th percentile"
+    )
 
-        st.metric(
-            "OVS",
-            f"{player_data['OVS']:.2f}"
-        )
+with score2:
+    st.metric(
+        "DVS",
+        f"{player_data['DVS']:.2f}",
+        f"{player_data['DVS_Percentile']:.0f}th percentile"
+    )
 
+with score3:
+    st.metric(
+        "AVS",
+        f"{player_data['AVS']:.2f}",
+        f"{player_data['AVS_Percentile']:.0f}th percentile"
+    )
 
-    with score2:
-
-        st.metric(
-            "DVS",
-            f"{player_data['DVS']:.2f}"
-        )
-
-
-    with score3:
-
-        st.metric(
-            "AVS",
-            f"{player_data['AVS']:.2f}"
-        )
-
-
-    with score4:
-
-        st.metric(
-            "Overall Player Score",
-            (
-                f"{player_data['Overall_Player_Score']:.2f}"
-            )
-        )
+with score4:
+    st.metric(
+        "Overall Player Score",
+        f"{player_data['Overall_Player_Score']:.2f}",
+        f"{player_data['Performance_Percentile']:.0f}th percentile"
+    )
 
 
     # -----------------------------------------------------
