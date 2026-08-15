@@ -381,10 +381,12 @@ with tab1:
 
     labels = (
         alt.Chart(quadrant_labels)
-        .mark_text(
-            fontSize=15,
-            fontWeight="bold",
-            opacity=0.75
+        ..mark_text(
+    fontSize=13,
+    fontWeight="normal",
+    color="white",
+    opacity=0.70
+)
         )
         .encode(
             x="Salary:Q",
