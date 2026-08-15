@@ -1179,97 +1179,158 @@ with tab2:
 
 with tab3:
 
-    st.header(
-        "Player Explorer"
-    )
+    st.header("Player Explorer")
 
     st.write(
         """
-        Select any player in the database to see his offensive,
-        defensive, availability, performance, salary, and contract
-        value information.
+        Select any player in the database to explore his offensive,
+        defensive, availability, overall performance, salary, and
+        contract value.
         """
     )
 
+    # -----------------------------------------------------
+    # PLAYER SELECTOR
+    # -----------------------------------------------------
 
     player_list = sorted(
-        master_df[
-            "Player"
-        ]
+        master_df["Player"]
         .dropna()
         .unique()
     )
 
-
-    selected_player = (
-        st.selectbox(
-            "Select a player",
-            player_list
-        )
+    selected_player = st.selectbox(
+        "Select a player",
+        player_list,
+        key="player_explorer_select"
     )
 
-
     player_data = master_df[
-        master_df["Player"]
-        == selected_player
+        master_df["Player"] == selected_player
     ].iloc[0]
 
 
-    st.subheader(
-        selected_player
+    # -----------------------------------------------------
+    # CALCULATE PLAYER RANKS
+    # -----------------------------------------------------
+
+    overall_rank = (
+        master_df["Overall_Player_Score"]
+        .rank(
+            ascending=False,
+            method="min"
+        )
+        .loc[player_data.name]
+    )
+
+    ovs_rank = (
+        master_df["OVS"]
+        .rank(
+            ascending=False,
+            method="min"
+        )
+        .loc[player_data.name]
+    )
+
+    dvs_rank = (
+        master_df["DVS"]
+        .rank(
+            ascending=False,
+            method="min"
+        )
+        .loc[player_data.name]
+    )
+
+    avs_rank = (
+        master_df["AVS"]
+        .rank(
+            ascending=False,
+            method="min"
+        )
+        .loc[player_data.name]
     )
 
 
     # -----------------------------------------------------
-    # SCORE CARDS
+    # PLAYER NAME
     # -----------------------------------------------------
 
-    score1, score2, score3, score4 = (
-        st.columns(4)
+    st.subheader(selected_player)
+
+    st.caption(
+        f"Overall Performance Rank: "
+        f"#{int(overall_rank)} of {len(master_df)}"
     )
+
+
+    # =====================================================
+    # PLAYER SCORE CARDS
+    # =====================================================
+
+    score1, score2, score3, score4 = st.columns(4)
 
 
     with score1:
-    st.metric(
-        "OVS",
-        f"{player_data['OVS']:.2f}",
-        f"{player_data['OVS_Percentile']:.0f}th percentile"
-    )
 
-with score2:
-    st.metric(
-        "DVS",
-        f"{player_data['DVS']:.2f}",
-        f"{player_data['DVS_Percentile']:.0f}th percentile"
-    )
+        st.metric(
+            "OVS",
+            f"{player_data['OVS']:.2f}"
+        )
 
-with score3:
-    st.metric(
-        "AVS",
-        f"{player_data['AVS']:.2f}",
-        f"{player_data['AVS_Percentile']:.0f}th percentile"
-    )
-
-with score4:
-    st.metric(
-        "Overall Player Score",
-        f"{player_data['Overall_Player_Score']:.2f}",
-        f"{player_data['Performance_Percentile']:.0f}th percentile"
-    )
+        st.caption(
+            f"{player_data['OVS_Percentile']:.1f}th percentile "
+            f"• Rank #{int(ovs_rank)}"
+        )
 
 
-    # -----------------------------------------------------
-    # CONTRACT
-    # -----------------------------------------------------
+    with score2:
 
-    st.subheader(
-        "Contract"
-    )
+        st.metric(
+            "DVS",
+            f"{player_data['DVS']:.2f}"
+        )
+
+        st.caption(
+            f"{player_data['DVS_Percentile']:.1f}th percentile "
+            f"• Rank #{int(dvs_rank)}"
+        )
 
 
-    contract1, contract2, contract3 = (
-        st.columns(3)
-    )
+    with score3:
+
+        st.metric(
+            "AVS",
+            f"{player_data['AVS']:.2f}"
+        )
+
+        st.caption(
+            f"{player_data['AVS_Percentile']:.1f}th percentile "
+            f"• Rank #{int(avs_rank)}"
+        )
+
+
+    with score4:
+
+        st.metric(
+            "Overall Player Score",
+            f"{player_data['Overall_Player_Score']:.2f}"
+        )
+
+        st.caption(
+            f"{player_data['Performance_Percentile']:.1f}th percentile "
+            f"• Rank #{int(overall_rank)}"
+        )
+
+
+    # =====================================================
+    # CONTRACT INFORMATION
+    # =====================================================
+
+    st.divider()
+
+    st.subheader("Contract")
+
+    contract1, contract2, contract3 = st.columns(3)
 
 
     with contract1:
@@ -1279,63 +1340,145 @@ with score4:
             f"${player_data['Salary']:,.0f}"
         )
 
+        st.caption(
+            f"{player_data['Salary_Percentile']:.1f}th "
+            f"salary percentile"
+        )
+
 
     with contract2:
 
         st.metric(
             "Salary Per Game",
-            (
-                f"${player_data['Salary_Per_Game']:,.0f}"
-            )
+            f"${player_data['Salary_Per_Game']:,.0f}"
         )
 
 
     with contract3:
 
         if (
-            player_data[
-                "Overall_Player_Score"
-            ]
+            player_data["Overall_Player_Score"]
             >= MINIMUM_PLAYER_SCORE
         ):
 
             st.metric(
-                "Value Score",
-                (
-                    f"{player_data['Final_Value_Score']:.2f}"
-                )
+                "Final Value Score",
+                f"{player_data['Final_Value_Score']:.2f}"
             )
 
         else:
 
             st.metric(
-                "Value Score",
+                "Final Value Score",
                 "Not Qualified"
             )
 
+            st.caption(
+                "Overall Player Score must be at least 60."
+            )
+
+
+    # =====================================================
+    # PERFORMANCE PERCENTILE CHART
+    # =====================================================
 
     st.divider()
 
+    st.subheader("Performance Profile")
 
-    # -----------------------------------------------------
-    # UNDERLYING STATS
-    # -----------------------------------------------------
+    st.write(
+        """
+        Percentiles show how the selected player compares with
+        the other players analyzed by the model.
+        """
+    )
 
-    st.subheader(
-        "Underlying Statistics"
+    profile_df = pd.DataFrame(
+        {
+            "Category": [
+                "OVS",
+                "DVS",
+                "AVS",
+                "Overall"
+            ],
+
+            "Percentile": [
+                player_data["OVS_Percentile"],
+                player_data["DVS_Percentile"],
+                player_data["AVS_Percentile"],
+                player_data["Performance_Percentile"]
+            ]
+        }
     )
 
 
-    offense_col, defense_col, availability_col = (
-        st.columns(3)
+    profile_chart = (
+        alt.Chart(profile_df)
+        .mark_bar()
+        .encode(
+
+            x=alt.X(
+                "Percentile:Q",
+                title="League Percentile",
+                scale=alt.Scale(
+                    domain=[0, 100]
+                )
+            ),
+
+            y=alt.Y(
+                "Category:N",
+                title=None,
+                sort=[
+                    "OVS",
+                    "DVS",
+                    "AVS",
+                    "Overall"
+                ]
+            ),
+
+            tooltip=[
+                alt.Tooltip(
+                    "Category:N",
+                    title="Category"
+                ),
+
+                alt.Tooltip(
+                    "Percentile:Q",
+                    title="Percentile",
+                    format=".1f"
+                )
+            ]
+        )
+        .properties(
+            height=250
+        )
     )
 
+    st.altair_chart(
+        profile_chart,
+        use_container_width=True
+    )
+
+
+    # =====================================================
+    # UNDERLYING STATISTICS
+    # =====================================================
+
+    st.divider()
+
+    st.subheader("Underlying Statistics")
+
+
+    offense_col, defense_col, availability_col = st.columns(3)
+
+
+    # -----------------------------------------------------
+    # OFFENSE
+    # -----------------------------------------------------
 
     with offense_col:
 
-        st.markdown(
-            "### 🏀 Offense"
-        )
+        st.markdown("### 🏀 Offense")
 
         st.write(
             f"**True Shooting %:** "
@@ -1363,11 +1506,13 @@ with score4:
         )
 
 
+    # -----------------------------------------------------
+    # DEFENSE
+    # -----------------------------------------------------
+
     with defense_col:
 
-        st.markdown(
-            "### 🛡️ Defense"
-        )
+        st.markdown("### 🛡️ Defense")
 
         st.write(
             f"**Defensive Rebounds/Game:** "
@@ -1385,11 +1530,13 @@ with score4:
         )
 
 
+    # -----------------------------------------------------
+    # AVAILABILITY
+    # -----------------------------------------------------
+
     with availability_col:
 
-        st.markdown(
-            "### ⏱️ Availability"
-        )
+        st.markdown("### ⏱️ Availability")
 
         st.write(
             f"**Games Played:** "
@@ -1405,8 +1552,6 @@ with score4:
             f"**Player Efficiency Rating:** "
             f"{player_data['PER']:.1f}"
         )
-
-
 # =========================================================
 # TAB 4 — PLAYER COMPARISON
 # =========================================================
