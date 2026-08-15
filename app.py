@@ -422,9 +422,82 @@ with tab1:
     )
 
 
-    st.caption(
-        f"Median Annual Salary: ${median_salary:,.0f}   |   "
-        f"Median Overall Player Score: {median_player_score:.2f}"
+    # =====================================================
+    # TOP 10 CONTRACT VALUES
+    # =====================================================
+
+    st.divider()
+
+    st.subheader("Top 10 Contract Values")
+
+    st.write(
+        """
+        The ten highest-ranked contracts according to the NBA Player
+        Value model. Players must have an Overall Player Score of at
+        least 60 to qualify.
+        """
+    )
+
+    top_10 = (
+        master_df[
+            master_df["Overall_Player_Score"] >= MINIMUM_PLAYER_SCORE
+        ]
+        .sort_values(
+            "Final_Value_Score",
+            ascending=False
+        )
+        .head(10)
+        .copy()
+    )
+
+    top_10_chart = (
+        alt.Chart(top_10)
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "Final_Value_Score:Q",
+                title="Contract Value Score"
+            ),
+
+            y=alt.Y(
+                "Player:N",
+                title=None,
+                sort="-x"
+            ),
+
+            tooltip=[
+                alt.Tooltip(
+                    "Player:N",
+                    title="Player"
+                ),
+
+                alt.Tooltip(
+                    "Final_Value_Score:Q",
+                    title="Value Score",
+                    format=".2f"
+                ),
+
+                alt.Tooltip(
+                    "Overall_Player_Score:Q",
+                    title="Player Score",
+                    format=".2f"
+                ),
+
+                alt.Tooltip(
+                    "Salary:Q",
+                    title="Annual Salary",
+                    format="$,.0f"
+                )
+            ]
+        )
+        .properties(
+            height=400
+        )
+    )
+
+    st.altair_chart(
+        top_10_chart,
+        use_container_width=True
     )
 
 
