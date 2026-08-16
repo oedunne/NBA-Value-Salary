@@ -1882,23 +1882,345 @@ with tab4:
 
 with tab5:
 
-    st.header(
-        "🏢 Front Office Efficiency"
-    )
+    st.header("🏢 Front Office Efficiency")
 
     st.write(
         """
-        This section will evaluate how effectively NBA front offices
+        This dashboard evaluates how effectively NBA front offices
         convert their **2026–27 payroll** into player performance
         based on the 2025–26 season.
-
-        Team-level payroll efficiency, performance rankings,
-        spending analysis, and Front Office Comparison are coming next.
         """
     )
 
-    st.info(
-        "Team analytics are being built from the updated master database."
+
+    # =====================================================
+    # BUILD TEAM DATABASE
+    # =====================================================
+
+    team_source = master_df[
+        [
+            "Player",
+            "Team",
+            "Salary",
+            "OVS",
+            "DVS",
+            "AVS",
+            "Overall_Player_Score",
+            "Minutes_Per_Game",
+            "Final_Value_Score"
+        ]
+    ].dropna(subset=["Team"]).copy()
+
+
+    # Contribution used for minutes-weighted team performance
+    team_source["Weighted_Score_Contribution"] = (
+        team_source["Overall_Player_Score"]
+        * team_source["Minutes_Per_Game"]
+    )
+
+
+    team_df = (
+        team_source
+        .groupby("Team")
+        .agg(
+            Player_Count=("Player", "count"),
+            Total_Payroll=("Salary", "sum"),
+            Avg_OVS=("OVS", "mean"),
+            Avg_DVS=("DVS", "mean"),
+            Avg_AVS=("AVS", "mean"),
+            Avg_Player_Score=("Overall_Player_Score", "mean"),
+            Total_Weighted_Score=("Weighted_Score_Contribution", "sum"),
+            Total_Minutes=("Minutes_Per_Game", "sum"),
+            Avg_Value_Score=("Final_Value_Score", "mean")
+        )
+        .reset_index()
+    )
+
+
+    team_df["Weighted_Player_Score"] = (
+        team_df["Total_Weighted_Score"]
+        / team_df["Total_Minutes"]
+    )
+
+
+    # =====================================================
+    # TEAM RANKS
+    # =====================================================
+
+    team_df["Payroll_Rank"] = (
+        team_df["Total_Payroll"]
+        .rank(
+            ascending=False,
+            method="min"
+        )
+        .astype(int)
+    )
+
+
+    team_df["Performance_Rank"] = (
+        team_df["Weighted_Player_Score"]
+        .rank(
+            ascending=False,
+            method="min"
+        )
+        .astype(int)
+    )
+
+
+    team_df["Payroll_Percentile"] = (
+        team_df["Total_Payroll"]
+        .rank(
+            pct=True,
+            method="average"
+        )
+        * 100
+    )
+
+
+    team_df["Performance_Percentile"] = (
+        team_df["Weighted_Player_Score"]
+        .rank(
+            pct=True,
+            method="average"
+        )
+        * 100
+    )
+
+
+    team_df["Efficiency_Gap"] = (
+        team_df["Performance_Percentile"]
+        - team_df["Payroll_Percentile"]
+    )
+
+
+    team_df["Efficiency_Rank"] = (
+        team_df["Efficiency_Gap"]
+        .rank(
+            ascending=False,
+            method="min"
+        )
+        .astype(int)
+    )
+
+
+    # =====================================================
+    # CLEAN DISPLAY TABLE
+    # =====================================================
+
+    team_display = team_df[
+        [
+            "Efficiency_Rank",
+            "Team",
+            "Total_Payroll",
+            "Payroll_Rank",
+            "Avg_Player_Score",
+            "Weighted_Player_Score",
+            "Performance_Rank",
+            "Efficiency_Gap",
+            "Avg_OVS",
+            "Avg_DVS",
+            "Avg_AVS"
+        ]
+    ].copy()
+
+
+    team_display = team_display.sort_values(
+        "Efficiency_Rank"
+    )
+
+
+    for col in [
+        "Avg_Player_Score",
+        "Weighted_Player_Score",
+        "Efficiency_Gap",
+        "Avg_OVS",
+        "Avg_DVS",
+        "Avg_AVS"
+    ]:
+        team_display[col] = team_display[col].round(2)
+
+
+    team_display["Total_Payroll"] = (
+        team_display["Total_Payroll"]
+        .apply(
+            lambda x: f"${x:,.0f}"
+        )
+    )
+
+
+    # =====================================================
+    # HEADLINE METRICS
+    # =====================================================
+
+    most_efficient = team_df.sort_values(
+        "Efficiency_Rank"
+    ).iloc[0]
+
+
+    highest_payroll = team_df.sort_values(
+        "Total_Payroll",
+        ascending=False
+    ).iloc[0]
+
+
+    best_performance = team_df.sort_values(
+        "Weighted_Player_Score",
+        ascending=False
+    ).iloc[0]
+
+
+    lowest_payroll = team_df.sort_values(
+        "Total_Payroll",
+        ascending=True
+    ).iloc[0]
+
+
+    front1, front2, front3, front4 = st.columns(4)
+
+
+    with front1:
+
+        st.metric(
+            "Most Efficient Front Office",
+            most_efficient["Team"]
+        )
+
+
+    with front2:
+
+        st.metric(
+            "Highest Payroll",
+            highest_payroll["Team"],
+            f"${highest_payroll['Total_Payroll']:,.0f}"
+        )
+
+
+    with front3:
+
+        st.metric(
+            "Best Team Performance",
+            best_performance["Team"],
+            f"{best_performance['Weighted_Player_Score']:.2f}"
+        )
+
+
+    with front4:
+
+        st.metric(
+            "Lowest Payroll",
+            lowest_payroll["Team"],
+            f"${lowest_payroll['Total_Payroll']:,.0f}"
+        )
+
+
+    st.divider()
+
+
+    # =====================================================
+    # FRONT OFFICE LEADERBOARD
+    # =====================================================
+
+    st.subheader("Front Office Efficiency Leaderboard")
+
+    st.write(
+        """
+        Efficiency compares each team's **performance percentile**
+        with its **payroll percentile**.
+
+        A positive Efficiency Gap means the team is producing a
+        higher level of performance than its payroll ranking would suggest.
+        """
+    )
+
+
+    st.dataframe(
+        team_display,
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+    st.divider()
+
+
+    # =====================================================
+    # PAYROLL VS PERFORMANCE
+    # =====================================================
+
+    st.subheader("Payroll vs. Team Performance")
+
+
+    team_chart = (
+        alt.Chart(team_df)
+        .mark_circle(
+            size=140,
+            opacity=0.8
+        )
+        .encode(
+
+            x=alt.X(
+                "Total_Payroll:Q",
+                title="2026–27 Payroll",
+                axis=alt.Axis(
+                    format="$,.0f"
+                )
+            ),
+
+            y=alt.Y(
+                "Weighted_Player_Score:Q",
+                title="Minutes-Weighted Player Score"
+            ),
+
+            tooltip=[
+                alt.Tooltip(
+                    "Team:N",
+                    title="Team"
+                ),
+
+                alt.Tooltip(
+                    "Total_Payroll:Q",
+                    title="Payroll",
+                    format="$,.0f"
+                ),
+
+                alt.Tooltip(
+                    "Weighted_Player_Score:Q",
+                    title="Weighted Performance",
+                    format=".2f"
+                ),
+
+                alt.Tooltip(
+                    "Payroll_Rank:Q",
+                    title="Payroll Rank"
+                ),
+
+                alt.Tooltip(
+                    "Performance_Rank:Q",
+                    title="Performance Rank"
+                ),
+
+                alt.Tooltip(
+                    "Efficiency_Rank:Q",
+                    title="Efficiency Rank"
+                ),
+
+                alt.Tooltip(
+                    "Efficiency_Gap:Q",
+                    title="Efficiency Gap",
+                    format="+.1f"
+                )
+            ]
+        )
+        .properties(
+            height=500
+        )
+        .interactive()
+    )
+
+
+    st.altair_chart(
+        team_chart,
+        use_container_width=True
     )
 
 
