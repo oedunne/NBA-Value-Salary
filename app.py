@@ -37,7 +37,7 @@ def load_data():
         "nba_value_master_database.csv"
     )
 
-    # Make sure salary is numeric
+    # Make salary numeric
     master["Salary"] = pd.to_numeric(
         master["Salary"],
         errors="coerce"
@@ -48,12 +48,12 @@ def load_data():
         master["Salary"] / 82
     )
 
-    # Express salary/game in $100,000 units
+    # Salary per game in $100K units
     master["Salary_Per_Game_100K"] = (
         master["Salary_Per_Game"] / 100000
     )
 
-    # Official Contract Value formula
+    # Final contract value formula
     master["Final_Value_Score"] = (
         master["Overall_Player_Score"]
         /
@@ -70,7 +70,7 @@ leaderboard_df, master_df = load_data()
 
 
 # =========================================================
-# CONTRACT + PERFORMANCE PERCENTILES
+# PLAYER PERCENTILES
 # =========================================================
 
 master_df["Performance_Percentile"] = (
@@ -81,23 +81,37 @@ master_df["Performance_Percentile"] = (
     )
     * 100
 )
+
+
 master_df["OVS_Percentile"] = (
     master_df["OVS"]
-    .rank(pct=True, method="average")
+    .rank(
+        pct=True,
+        method="average"
+    )
     * 100
 )
+
 
 master_df["DVS_Percentile"] = (
     master_df["DVS"]
-    .rank(pct=True, method="average")
+    .rank(
+        pct=True,
+        method="average"
+    )
     * 100
 )
 
+
 master_df["AVS_Percentile"] = (
     master_df["AVS"]
-    .rank(pct=True, method="average")
+    .rank(
+        pct=True,
+        method="average"
+    )
     * 100
 )
+
 
 master_df["Salary_Percentile"] = (
     master_df["Salary"]
@@ -114,165 +128,7 @@ master_df["Contract_Efficiency_Gap"] = (
     -
     master_df["Salary_Percentile"]
 )
-# =========================================================
-# FRONT OFFICE / TEAM METRICS
-# =========================================================
 
-# Only use rows with a valid team
-team_source_df = master_df[
-    master_df["Team"].notna()
-].copy()
-
-# Minutes-weighted player score contribution
-team_source_df["Weighted_Player_Score"] = (
-    team_source_df["Overall_Player_Score"]
-    * team_source_df["Minutes_Per_Game"]
-)
-
-# Build one row per team
-team_df = (
-    team_source_df
-    .groupby("Team")
-    .agg(
-        Total_Payroll=("Salary", "sum"),
-        Player_Count=("Player", "count"),
-
-        Avg_OVS=("OVS", "mean"),
-        Avg_DVS=("DVS", "mean"),
-        Avg_AVS=("AVS", "mean"),
-
-        Avg_Player_Score=("Overall_Player_Score", "mean"),
-
-        Total_Weighted_Score=("Weighted_Player_Score", "sum"),
-        Total_Minutes=("Minutes_Per_Game", "sum"),
-
-        Avg_Value_Score=("Final_Value_Score", "mean")
-    )
-    .reset_index()
-)
-
-# Minutes-weighted team performance
-team_df["Weighted_Player_Score"] = (
-    team_df["Total_Weighted_Score"]
-    / team_df["Total_Minutes"]
-)
-
-# Payroll rank: #1 = highest payroll
-team_df["Payroll_Rank"] = (
-    team_df["Total_Payroll"]
-    .rank(
-        ascending=False,
-        method="min"
-    )
-    .astype(int)
-)
-
-# Performance rank: #1 = best weighted player performance
-team_df["Performance_Rank"] = (
-    team_df["Weighted_Player_Score"]
-    .rank(
-        ascending=False,
-        method="min"
-    )
-    .astype(int)
-)
-
-# Payroll percentile
-team_df["Payroll_Percentile"] = (
-    team_df["Total_Payroll"]
-    .rank(
-        pct=True,
-        method="average"
-    )
-    * 100
-)
-
-# Performance percentile
-team_df["Performance_Percentile"] = (
-    team_df["Weighted_Player_Score"]
-    .rank(
-        pct=True,
-        method="average"
-    )
-    * 100
-)
-
-# Positive = getting more performance than payroll level suggests
-# Negative = spending more than performance level suggests
-team_df["Front_Office_Efficiency_Gap"] = (
-    team_df["Performance_Percentile"]
-    - team_df["Payroll_Percentile"]
-)
-
-# Efficiency rank: #1 = largest positive efficiency gap
-team_df["Efficiency_Rank"] = (
-    team_df["Front_Office_Efficiency_Gap"]
-    .rank(
-        ascending=False,
-        method="min"
-    )
-    .astype(int)
-)
-
-# Count Elite Bargains by team
-elite_bargain_counts = (
-    master_df[
-        master_df["Performance_Percentile"] >= 80
-    ]
-    .groupby("Team")
-    .size()
-    .rename("Elite_Bargains")
-)
-
-# Count Least Efficient Contracts by team
-inefficient_contract_counts = (
-    master_df[
-        (master_df["Salary_Percentile"] >= 80)
-        &
-        (master_df["Performance_Percentile"] < 50)
-    ]
-    .groupby("Team")
-    .size()
-    .rename("Inefficient_Contracts")
-)
-
-# Add counts to team table
-team_df = team_df.merge(
-    elite_bargain_counts,
-    on="Team",
-    how="left"
-)
-
-team_df = team_df.merge(
-    inefficient_contract_counts,
-    on="Team",
-    how="left"
-)
-
-team_df["Elite_Bargains"] = (
-    team_df["Elite_Bargains"]
-    .fillna(0)
-    .astype(int)
-)
-
-team_df["Inefficient_Contracts"] = (
-    team_df["Inefficient_Contracts"]
-    .fillna(0)
-    .astype(int)
-)
-
-# Clean helper columns
-team_df = team_df.drop(
-    columns=[
-        "Total_Weighted_Score",
-        "Total_Minutes"
-    ]
-)
-
-# Sort by efficiency rank
-team_df = team_df.sort_values(
-    "Efficiency_Rank"
-).reset_index(drop=True)
 
 # =========================================================
 # HOMEPAGE / HERO
@@ -319,13 +175,10 @@ with col1:
 
 with col2:
 
-    qualified_count = (
-        master_df[
-            master_df["Overall_Player_Score"]
-            >= MINIMUM_PLAYER_SCORE
-        ]
-        .shape[0]
-    )
+    qualified_count = master_df[
+        master_df["Overall_Player_Score"]
+        >= MINIMUM_PLAYER_SCORE
+    ].shape[0]
 
     st.metric(
         "Qualified Contracts",
@@ -335,13 +188,13 @@ with col2:
 
 with col3:
 
-    qualified_for_best = master_df[
+    qualified_players = master_df[
         master_df["Overall_Player_Score"]
         >= MINIMUM_PLAYER_SCORE
     ]
 
     best_value_player = (
-        qualified_for_best
+        qualified_players
         .sort_values(
             "Final_Value_Score",
             ascending=False
@@ -395,37 +248,21 @@ step1, step2, step3, step4, step5 = st.columns(5)
 with step1:
 
     st.markdown("### 📊")
-
-    st.markdown(
-        "**NBA Statistics**"
-    )
-
-    st.caption(
-        "2025–26 performance data"
-    )
+    st.markdown("**NBA Statistics**")
+    st.caption("2025–26 performance data")
 
 
 with step2:
 
     st.markdown("### →")
-
-    st.markdown(
-        "**OVS · DVS · AVS**"
-    )
-
-    st.caption(
-        "Offense, defense & availability"
-    )
+    st.markdown("**OVS · DVS · AVS**")
+    st.caption("Offense, defense & availability")
 
 
 with step3:
 
     st.markdown("### →")
-
-    st.markdown(
-        "**Player Score**"
-    )
-
+    st.markdown("**Player Score**")
     st.caption(
         "36% offense · 34% defense · 30% availability"
     )
@@ -434,27 +271,15 @@ with step3:
 with step4:
 
     st.markdown("### →")
-
-    st.markdown(
-        "**Salary Adjustment**"
-    )
-
-    st.caption(
-        "2026–27 contract cost"
-    )
+    st.markdown("**Salary Adjustment**")
+    st.caption("2026–27 contract cost")
 
 
 with step5:
 
     st.markdown("### 🏆")
-
-    st.markdown(
-        "**Contract Value**"
-    )
-
-    st.caption(
-        "Performance relative to cost"
-    )
+    st.markdown("**Contract Value**")
+    st.caption("Performance relative to cost")
 
 
 st.divider()
@@ -497,9 +322,9 @@ with tab1:
     )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # METRIC KEY
-    # =====================================================
+    # -----------------------------------------------------
 
     with st.expander(
         "📖 Metric Key"
@@ -525,9 +350,9 @@ with tab1:
         )
 
 
-    # =====================================================
+    # -----------------------------------------------------
     # SEARCH
-    # =====================================================
+    # -----------------------------------------------------
 
     search_value = st.text_input(
         "Search for a player",
@@ -592,36 +417,29 @@ with tab1:
     ].dropna().copy()
 
 
-    median_salary = (
-        chart_df["Salary"].median()
-    )
+    median_salary = chart_df[
+        "Salary"
+    ].median()
 
-    median_player_score = (
-        chart_df[
-            "Overall_Player_Score"
-        ].median()
-    )
+    median_player_score = chart_df[
+        "Overall_Player_Score"
+    ].median()
 
+    max_salary = chart_df[
+        "Salary"
+    ].max()
 
-    max_salary = (
-        chart_df["Salary"].max()
-    )
+    min_salary = chart_df[
+        "Salary"
+    ].min()
 
-    min_salary = (
-        chart_df["Salary"].min()
-    )
+    max_score = chart_df[
+        "Overall_Player_Score"
+    ].max()
 
-    max_score = (
-        chart_df[
-            "Overall_Player_Score"
-        ].max()
-    )
-
-    min_score = (
-        chart_df[
-            "Overall_Player_Score"
-        ].min()
-    )
+    min_score = chart_df[
+        "Overall_Player_Score"
+    ].min()
 
 
     # -----------------------------------------------------
@@ -821,10 +639,6 @@ with tab1:
     )
 
 
-    # -----------------------------------------------------
-    # COMBINE CHART
-    # -----------------------------------------------------
-
     value_quadrant_chart = (
         points
         + salary_line
@@ -869,9 +683,7 @@ with tab1:
 
     top_10 = (
         master_df[
-            master_df[
-                "Overall_Player_Score"
-            ]
+            master_df["Overall_Player_Score"]
             >= MINIMUM_PLAYER_SCORE
         ]
         .sort_values(
@@ -884,7 +696,9 @@ with tab1:
 
 
     top_10_chart = (
-        alt.Chart(top_10)
+        alt.Chart(
+            top_10
+        )
         .mark_bar()
         .encode(
 
@@ -948,8 +762,6 @@ with tab1:
 
     st.write(
         """
-        Value can mean different things depending on the question.
-
         **Elite Bargains** identifies players performing in the
         top 20% of the NBA according to the model and then determines
         which provide the greatest contract value.
@@ -959,10 +771,6 @@ with tab1:
         """
     )
 
-
-    # -----------------------------------------------------
-    # ELITE BARGAINS
-    # -----------------------------------------------------
 
     elite_bargains = (
         master_df[
@@ -979,10 +787,6 @@ with tab1:
         .copy()
     )
 
-
-    # -----------------------------------------------------
-    # LEAST EFFICIENT CONTRACTS
-    # -----------------------------------------------------
 
     least_efficient = (
         master_df[
@@ -1015,7 +819,7 @@ with tab1:
 
 
     # -----------------------------------------------------
-    # ELITE BARGAINS CHART
+    # ELITE BARGAINS
     # -----------------------------------------------------
 
     with bargain_col:
@@ -1097,7 +901,7 @@ with tab1:
 
 
     # -----------------------------------------------------
-    # LEAST EFFICIENT CONTRACTS CHART
+    # LEAST EFFICIENT CONTRACTS
     # -----------------------------------------------------
 
     with inefficient_col:
@@ -1111,7 +915,9 @@ with tab1:
         )
 
 
-        if len(least_efficient) > 0:
+        if len(
+            least_efficient
+        ) > 0:
 
             inefficient_chart = (
                 alt.Chart(
@@ -1182,17 +988,6 @@ with tab1:
                 use_container_width=True
             )
 
-        else:
-
-            st.info(
-                "No players currently meet "
-                "the Least Efficient Contract criteria."
-            )
-
-
-    # -----------------------------------------------------
-    # DEFINITIONS
-    # -----------------------------------------------------
 
     with st.expander(
         "How are these groups defined?"
@@ -1202,30 +997,22 @@ with tab1:
             """
             **💎 Elite Bargains**
 
-            1. Player must rank in the **80th percentile or higher**
-               in Overall Player Score.
-            2. Qualifying players are ranked by the model's
-               **Final Value Score**.
-            3. This identifies high-level players whose contracts
-               provide particularly strong value.
+            - Overall Player Score must rank in the
+              **80th percentile or higher**.
+            - Players are then ranked by Final Value Score.
 
             **💸 Least Efficient Contracts**
 
-            1. Player salary must rank in the **80th percentile
-               or higher**.
-            2. Player performance must rank **below the 50th
-               percentile**.
-            3. Players are ranked by the gap between their
-               Performance Percentile and Salary Percentile.
-
-            A larger negative gap indicates a greater mismatch
-            between salary and measured performance.
+            - Salary must rank in the **80th percentile or higher**.
+            - Performance must rank **below the 50th percentile**.
+            - Players are ranked by the gap between performance
+              percentile and salary percentile.
             """
         )
 
 
 # =========================================================
-# TAB 2 — PLAYER PERFORMANCE RANKINGS
+# TAB 2 — PLAYER RANKINGS
 # =========================================================
 
 with tab2:
@@ -1237,8 +1024,6 @@ with tab2:
     st.write(
         """
         This ranking ignores salary entirely.
-
-        It answers a different question:
 
         **How strong was the player's overall basketball performance?**
         """
@@ -1292,18 +1077,19 @@ with tab2:
         "Overall_Player_Score"
     ]:
 
-        performance_df[column] = (
-            performance_df[column]
-            .round(2)
+        performance_df[
+            column
+        ] = (
+            performance_df[
+                column
+            ].round(2)
         )
 
 
     performance_search = (
         st.text_input(
             "Search player rankings",
-            placeholder=(
-                "Example: Nikola Jokic"
-            ),
+            placeholder="Example: Nikola Jokic",
             key="performance_search"
         )
     )
@@ -1338,7 +1124,9 @@ with tab2:
 
 with tab3:
 
-    st.header("Player Explorer")
+    st.header(
+        "Player Explorer"
+    )
 
     st.write(
         """
@@ -1348,9 +1136,6 @@ with tab3:
         """
     )
 
-    # -----------------------------------------------------
-    # PLAYER SELECTOR
-    # -----------------------------------------------------
 
     player_list = sorted(
         master_df["Player"]
@@ -1358,29 +1143,33 @@ with tab3:
         .unique()
     )
 
+
     selected_player = st.selectbox(
         "Select a player",
         player_list,
         key="player_explorer_select"
     )
 
+
     player_data = master_df[
-        master_df["Player"] == selected_player
+        master_df["Player"]
+        == selected_player
     ].iloc[0]
 
 
-    # -----------------------------------------------------
-    # CALCULATE PLAYER RANKS
-    # -----------------------------------------------------
-
     overall_rank = (
-        master_df["Overall_Player_Score"]
+        master_df[
+            "Overall_Player_Score"
+        ]
         .rank(
             ascending=False,
             method="min"
         )
-        .loc[player_data.name]
+        .loc[
+            player_data.name
+        ]
     )
+
 
     ovs_rank = (
         master_df["OVS"]
@@ -1388,8 +1177,11 @@ with tab3:
             ascending=False,
             method="min"
         )
-        .loc[player_data.name]
+        .loc[
+            player_data.name
+        ]
     )
+
 
     dvs_rank = (
         master_df["DVS"]
@@ -1397,8 +1189,11 @@ with tab3:
             ascending=False,
             method="min"
         )
-        .loc[player_data.name]
+        .loc[
+            player_data.name
+        ]
     )
+
 
     avs_rank = (
         master_df["AVS"]
@@ -1406,15 +1201,15 @@ with tab3:
             ascending=False,
             method="min"
         )
-        .loc[player_data.name]
+        .loc[
+            player_data.name
+        ]
     )
 
 
-    # -----------------------------------------------------
-    # PLAYER NAME
-    # -----------------------------------------------------
-
-    st.subheader(selected_player)
+    st.subheader(
+        selected_player
+    )
 
     st.caption(
         f"Overall Performance Rank: "
@@ -1422,11 +1217,9 @@ with tab3:
     )
 
 
-    # =====================================================
-    # PLAYER SCORE CARDS
-    # =====================================================
-
-    score1, score2, score3, score4 = st.columns(4)
+    score1, score2, score3, score4 = (
+        st.columns(4)
+    )
 
 
     with score1:
@@ -1481,15 +1274,16 @@ with tab3:
         )
 
 
-    # =====================================================
-    # CONTRACT INFORMATION
-    # =====================================================
-
     st.divider()
 
-    st.subheader("Contract")
+    st.subheader(
+        "Contract"
+    )
 
-    contract1, contract2, contract3 = st.columns(3)
+
+    contract1, contract2, contract3 = (
+        st.columns(3)
+    )
 
 
     with contract1:
@@ -1501,7 +1295,7 @@ with tab3:
 
         st.caption(
             f"{player_data['Salary_Percentile']:.1f}th "
-            f"salary percentile"
+            "salary percentile"
         )
 
 
@@ -1516,7 +1310,9 @@ with tab3:
     with contract3:
 
         if (
-            player_data["Overall_Player_Score"]
+            player_data[
+                "Overall_Player_Score"
+            ]
             >= MINIMUM_PLAYER_SCORE
         ):
 
@@ -1532,25 +1328,17 @@ with tab3:
                 "Not Qualified"
             )
 
-            st.caption(
-                "Overall Player Score must be at least 60."
-            )
 
-
-    # =====================================================
-    # PERFORMANCE PERCENTILE CHART
-    # =====================================================
+    # -----------------------------------------------------
+    # PERFORMANCE PROFILE
+    # -----------------------------------------------------
 
     st.divider()
 
-    st.subheader("Performance Profile")
-
-    st.write(
-        """
-        Percentiles show how the selected player compares with
-        the other players analyzed by the model.
-        """
+    st.subheader(
+        "Performance Profile"
     )
+
 
     profile_df = pd.DataFrame(
         {
@@ -1562,17 +1350,30 @@ with tab3:
             ],
 
             "Percentile": [
-                player_data["OVS_Percentile"],
-                player_data["DVS_Percentile"],
-                player_data["AVS_Percentile"],
-                player_data["Performance_Percentile"]
+                player_data[
+                    "OVS_Percentile"
+                ],
+
+                player_data[
+                    "DVS_Percentile"
+                ],
+
+                player_data[
+                    "AVS_Percentile"
+                ],
+
+                player_data[
+                    "Performance_Percentile"
+                ]
             ]
         }
     )
 
 
     profile_chart = (
-        alt.Chart(profile_df)
+        alt.Chart(
+            profile_df
+        )
         .mark_bar()
         .encode(
 
@@ -1586,13 +1387,7 @@ with tab3:
 
             y=alt.Y(
                 "Category:N",
-                title=None,
-                sort=[
-                    "OVS",
-                    "DVS",
-                    "AVS",
-                    "Overall"
-                ]
+                title=None
             ),
 
             tooltip=[
@@ -1613,31 +1408,34 @@ with tab3:
         )
     )
 
+
     st.altair_chart(
         profile_chart,
         use_container_width=True
     )
 
 
-    # =====================================================
-    # UNDERLYING STATISTICS
-    # =====================================================
+    # -----------------------------------------------------
+    # UNDERLYING STATS
+    # -----------------------------------------------------
 
     st.divider()
 
-    st.subheader("Underlying Statistics")
+    st.subheader(
+        "Underlying Statistics"
+    )
 
 
-    offense_col, defense_col, availability_col = st.columns(3)
+    offense_col, defense_col, availability_col = (
+        st.columns(3)
+    )
 
-
-    # -----------------------------------------------------
-    # OFFENSE
-    # -----------------------------------------------------
 
     with offense_col:
 
-        st.markdown("### 🏀 Offense")
+        st.markdown(
+            "### 🏀 Offense"
+        )
 
         st.write(
             f"**True Shooting %:** "
@@ -1665,13 +1463,11 @@ with tab3:
         )
 
 
-    # -----------------------------------------------------
-    # DEFENSE
-    # -----------------------------------------------------
-
     with defense_col:
 
-        st.markdown("### 🛡️ Defense")
+        st.markdown(
+            "### 🛡️ Defense"
+        )
 
         st.write(
             f"**Defensive Rebounds/Game:** "
@@ -1689,13 +1485,11 @@ with tab3:
         )
 
 
-    # -----------------------------------------------------
-    # AVAILABILITY
-    # -----------------------------------------------------
-
     with availability_col:
 
-        st.markdown("### ⏱️ Availability")
+        st.markdown(
+            "### ⏱️ Availability"
+        )
 
         st.write(
             f"**Games Played:** "
@@ -1711,6 +1505,8 @@ with tab3:
             f"**Player Efficiency Rating:** "
             f"{player_data['PER']:.1f}"
         )
+
+
 # =========================================================
 # TAB 4 — PLAYER COMPARISON
 # =========================================================
@@ -1723,8 +1519,8 @@ with tab4:
 
     st.write(
         """
-        Compare two NBA players across performance, contract cost,
-        and contract value.
+        Compare two NBA players across performance,
+        contract cost, and contract value.
         """
     )
 
@@ -1745,25 +1541,21 @@ with tab4:
 
     with select_col1:
 
-        player_1_name = (
-            st.selectbox(
-                "Player 1",
-                compare_player_list,
-                index=0,
-                key="compare_player_1"
-            )
+        player_1_name = st.selectbox(
+            "Player 1",
+            compare_player_list,
+            index=0,
+            key="compare_player_1"
         )
 
 
     with select_col2:
 
-        player_2_name = (
-            st.selectbox(
-                "Player 2",
-                compare_player_list,
-                index=1,
-                key="compare_player_2"
-            )
+        player_2_name = st.selectbox(
+            "Player 2",
+            compare_player_list,
+            index=1,
+            key="compare_player_2"
         )
 
 
@@ -1801,10 +1593,6 @@ with tab4:
         )
 
 
-    # -----------------------------------------------------
-    # OVERALL SCORE
-    # -----------------------------------------------------
-
     st.markdown(
         "### Overall Player Score"
     )
@@ -1819,9 +1607,7 @@ with tab4:
 
         st.metric(
             player_1_name,
-            (
-                f"{player_1['Overall_Player_Score']:.2f}"
-            )
+            f"{player_1['Overall_Player_Score']:.2f}"
         )
 
 
@@ -1829,15 +1615,9 @@ with tab4:
 
         st.metric(
             player_2_name,
-            (
-                f"{player_2['Overall_Player_Score']:.2f}"
-            )
+            f"{player_2['Overall_Player_Score']:.2f}"
         )
 
-
-    # -----------------------------------------------------
-    # CATEGORY CHART
-    # -----------------------------------------------------
 
     st.markdown(
         "### Performance Breakdown"
@@ -1931,10 +1711,6 @@ with tab4:
     )
 
 
-    # -----------------------------------------------------
-    # CONTRACT COMPARISON
-    # -----------------------------------------------------
-
     st.markdown(
         "### Contract Comparison"
     )
@@ -1954,9 +1730,7 @@ with tab4:
 
         st.metric(
             f"{player_1_name} Salary / Game",
-            (
-                f"${player_1['Salary_Per_Game']:,.0f}"
-            )
+            f"${player_1['Salary_Per_Game']:,.0f}"
         )
 
 
@@ -1969,15 +1743,9 @@ with tab4:
 
         st.metric(
             f"{player_2_name} Salary / Game",
-            (
-                f"${player_2['Salary_Per_Game']:,.0f}"
-            )
+            f"${player_2['Salary_Per_Game']:,.0f}"
         )
 
-
-    # -----------------------------------------------------
-    # CONTRACT VALUE COMPARISON
-    # -----------------------------------------------------
 
     st.markdown(
         "### Contract Value"
@@ -2000,9 +1768,7 @@ with tab4:
 
             st.metric(
                 player_1_name,
-                (
-                    f"{player_1['Final_Value_Score']:.2f}"
-                )
+                f"{player_1['Final_Value_Score']:.2f}"
             )
 
         else:
@@ -2024,9 +1790,7 @@ with tab4:
 
             st.metric(
                 player_2_name,
-                (
-                    f"{player_2['Final_Value_Score']:.2f}"
-                )
+                f"{player_2['Final_Value_Score']:.2f}"
             )
 
         else:
@@ -2036,10 +1800,6 @@ with tab4:
                 "Not Qualified"
             )
 
-
-    # -----------------------------------------------------
-    # RAW STAT TABLE
-    # -----------------------------------------------------
 
     st.divider()
 
@@ -2097,22 +1857,16 @@ with tab4:
 
     stat_comparison[
         player_1_name
-    ] = (
-        stat_comparison[
-            player_1_name
-        ]
-        .round(2)
-    )
+    ] = stat_comparison[
+        player_1_name
+    ].round(2)
 
 
     stat_comparison[
         player_2_name
-    ] = (
-        stat_comparison[
-            player_2_name
-        ]
-        .round(2)
-    )
+    ] = stat_comparison[
+        player_2_name
+    ].round(2)
 
 
     st.dataframe(
@@ -2123,7 +1877,33 @@ with tab4:
 
 
 # =========================================================
-# TAB 5 — METHODOLOGY
+# TAB 5 — FRONT OFFICE EFFICIENCY
+# =========================================================
+
+with tab5:
+
+    st.header(
+        "🏢 Front Office Efficiency"
+    )
+
+    st.write(
+        """
+        This section will evaluate how effectively NBA front offices
+        convert their **2026–27 payroll** into player performance
+        based on the 2025–26 season.
+
+        Team-level payroll efficiency, performance rankings,
+        spending analysis, and Front Office Comparison are coming next.
+        """
+    )
+
+    st.info(
+        "Team analytics are being built from the updated master database."
+    )
+
+
+# =========================================================
+# TAB 6 — METHODOLOGY
 # =========================================================
 
 with tab6:
@@ -2146,10 +1926,6 @@ with tab6:
     st.divider()
 
 
-    # -----------------------------------------------------
-    # BENCHMARKING
-    # -----------------------------------------------------
-
     st.subheader(
         "1. Statistical Benchmarking"
     )
@@ -2159,23 +1935,15 @@ with tab6:
         Each statistic is compared against the **95th percentile
         of NBA players** in the dataset.
 
-        A statistical score of **100** therefore represents
-        approximately 95th-percentile NBA performance in that
-        statistic.
-
-        Players performing above this benchmark may receive
-        scores above 100.
+        A score of **100** represents approximately 95th-percentile
+        performance.
 
         Individual statistical scores are capped at **115** so
-        that one extreme statistic cannot disproportionately
-        control an entire category.
+        that one extreme statistic cannot disproportionately control
+        an entire category.
         """
     )
 
-
-    # -----------------------------------------------------
-    # OVS
-    # -----------------------------------------------------
 
     st.subheader(
         "2. Offensive Value Score — OVS"
@@ -2183,9 +1951,7 @@ with tab6:
 
     st.write(
         """
-        OVS measures offensive production and efficiency.
-
-        It is the average of:
+        OVS is the average of:
 
         - True Shooting Percentage
         - Offensive Win Shares
@@ -2196,19 +1962,13 @@ with tab6:
     )
 
 
-    # -----------------------------------------------------
-    # DVS
-    # -----------------------------------------------------
-
     st.subheader(
         "3. Defensive Value Score — DVS"
     )
 
     st.write(
         """
-        DVS measures defensive production and impact.
-
-        It is the average of:
+        DVS is the average of:
 
         - Defensive Rebounds Per Game
         - Steals + Blocks Per Game
@@ -2217,20 +1977,13 @@ with tab6:
     )
 
 
-    # -----------------------------------------------------
-    # AVS
-    # -----------------------------------------------------
-
     st.subheader(
         "4. Availability Value Score — AVS"
     )
 
     st.write(
         """
-        AVS evaluates availability, playing time, and productive
-        efficiency.
-
-        It incorporates:
+        AVS incorporates:
 
         - Games Played
         - Minutes Per Game
@@ -2238,10 +1991,6 @@ with tab6:
         """
     )
 
-
-    # -----------------------------------------------------
-    # OVERALL PLAYER SCORE
-    # -----------------------------------------------------
 
     st.subheader(
         "5. Overall Player Score"
@@ -2260,21 +2009,6 @@ with tab6:
     )
 
 
-    st.write(
-        """
-        The final basketball performance score assigns:
-
-        - **36% weight to offense**
-        - **34% weight to defense**
-        - **30% weight to availability and efficiency**
-        """
-    )
-
-
-    # -----------------------------------------------------
-    # SALARY PER GAME
-    # -----------------------------------------------------
-
     st.subheader(
         "6. Salary Per Game"
     )
@@ -2288,35 +2022,8 @@ with tab6:
     )
 
 
-    st.write(
-        """
-        Salary is divided across the NBA's 82 scheduled regular
-        season games rather than the player's actual games played.
-
-        Availability is already measured separately through AVS.
-        """
-    )
-
-
-    # -----------------------------------------------------
-    # VALUE SCORE
-    # -----------------------------------------------------
-
     st.subheader(
         "7. Final Value Score"
-    )
-
-    st.write(
-        """
-        Simply dividing performance directly by salary would heavily
-        penalize superstar players because NBA salary differences
-        are much larger than differences on a bounded performance
-        scale.
-
-        To reduce that distortion while still rewarding inexpensive
-        contracts, salary is transformed using an exponent of
-        **0.30**.
-        """
     )
 
 
@@ -2333,17 +2040,9 @@ with tab6:
         """
         Players must have an **Overall Player Score of at least 60**
         to qualify for the primary Value Leaderboard.
-
-        This prevents extremely inexpensive contracts from
-        artificially pushing low-performing players to the top of
-        the rankings.
         """
     )
 
-
-    # -----------------------------------------------------
-    # ELITE BARGAINS
-    # -----------------------------------------------------
 
     st.subheader(
         "8. Elite Bargains"
@@ -2351,20 +2050,11 @@ with tab6:
 
     st.write(
         """
-        Elite Bargains are players whose **Overall Player Score ranks
-        in the 80th percentile or higher**.
-
-        Those players are then ranked by Final Value Score.
-
-        This identifies players who are both high-level performers
-        and especially efficient contracts.
+        Elite Bargains must rank in the **80th percentile or higher**
+        in Overall Player Score and are then ranked by Final Value Score.
         """
     )
 
-
-    # -----------------------------------------------------
-    # LEAST EFFICIENT CONTRACTS
-    # -----------------------------------------------------
 
     st.subheader(
         "9. Least Efficient Contracts"
@@ -2372,20 +2062,16 @@ with tab6:
 
     st.write(
         """
-        A player enters the Least Efficient Contract group when:
+        Least Efficient Contracts require:
 
-        - His salary ranks in the **80th percentile or higher**, and
-        - His Overall Player Score ranks **below the 50th percentile**.
+        - **80th percentile or higher salary**
+        - **Below 50th percentile performance**
 
-        Players are then ranked using the gap between their salary
-        percentile and performance percentile.
+        Players are ranked by the difference between their
+        performance percentile and salary percentile.
         """
     )
 
-
-    # -----------------------------------------------------
-    # DATA
-    # -----------------------------------------------------
 
     st.subheader(
         "10. Data"
@@ -2395,19 +2081,13 @@ with tab6:
         """
         Player performance is based on **2025–26 NBA statistics**.
 
-        Contract value uses **2026–27 salary**, meaning the model
-        evaluates each player's upcoming contract cost using his
-        most recent season of performance.
+        Contract value uses **2026–27 salary and contract team**.
 
-        Player statistics and contract information were collected
-        from Basketball-Reference.
+        Player statistics and contract data were collected from
+        Basketball-Reference.
         """
     )
 
-
-    # -----------------------------------------------------
-    # LIMITATIONS
-    # -----------------------------------------------------
 
     st.subheader(
         "11. Model Limitations"
@@ -2418,13 +2098,12 @@ with tab6:
         No single numerical model can completely describe an NBA
         player's value.
 
-        Factors including role, position, lineup context, coaching,
-        injuries, playoff performance, contract structure, age,
-        team strategy, and future development are not completely
-        captured by the current model.
+        Role, position, lineup context, coaching, injuries,
+        playoff performance, age, contract structure, and future
+        development are not fully captured.
 
-        The model should therefore be interpreted as a tool for
-        comparing statistical production and contract efficiency,
+        The model should therefore be interpreted as an analytical
+        tool for comparing player production and contract efficiency,
         rather than as a definitive ranking of NBA talent.
         """
     )
