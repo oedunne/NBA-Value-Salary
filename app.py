@@ -1940,7 +1940,7 @@ with tab5:
         team_df["Total_Weighted_Score"]
         / team_df["Total_Minutes"]
     )
-# TEMPORARY TEAM COVERAGE CHECK
+    # TEMPORARY TEAM COVERAGE CHECK
 st.write(
     team_df[
         ["Team", "Player_Count", "Total_Payroll"]
