@@ -286,8 +286,7 @@ with
 
 **2026–27 NBA salary and contract-team data**
 
-Player statistics and contract information were collected from **Basketball-Reference** and transformed into a structured player-level analytics database.
-
+Player performance statistics were collected from Basketball-Reference, while 2026–27 salary and contract-team data were collected from HoopsHype. These sources were cleaned, matched, and transformed into a structured player-level analytics database.
 The final dataset connects each player's most recent performance with the organization responsible for his upcoming contract.
 
 ---
