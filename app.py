@@ -1940,15 +1940,7 @@ with tab5:
         team_df["Total_Weighted_Score"]
         / team_df["Total_Minutes"]
     )
-    # TEMPORARY TEAM COVERAGE CHECK
-st.write(
-    team_df[
-        ["Team", "Player_Count", "Total_Payroll"]
-    ].sort_values(
-        "Player_Count",
-        ascending=False
-    )
-)
+    
 
     # =====================================================
     # TEAM RANKS + PERCENTILES
