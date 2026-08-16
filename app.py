@@ -2484,7 +2484,297 @@ with tab5:
             ranks higher than its performance.
             """
         )
+    # =====================================================
+    # HIGHEST & LOWEST PAYROLL ANALYSIS
+    # =====================================================
 
+    st.divider()
+
+    st.subheader("Payroll Analysis")
+
+    st.write(
+        """
+        Spending more does not automatically mean getting more value.
+        These rankings compare the NBA's highest- and lowest-payroll
+        teams with the performance those payrolls are producing.
+        """
+    )
+
+
+    # -----------------------------------------------------
+    # FIVE HIGHEST PAYROLLS
+    # -----------------------------------------------------
+
+    highest_payroll_teams = (
+        team_df
+        .sort_values(
+            "Total_Payroll",
+            ascending=False
+        )
+        .head(5)
+        .copy()
+    )
+
+
+    # -----------------------------------------------------
+    # FIVE LOWEST PAYROLLS
+    # -----------------------------------------------------
+
+    lowest_payroll_teams = (
+        team_df
+        .sort_values(
+            "Total_Payroll",
+            ascending=True
+        )
+        .head(5)
+        .copy()
+    )
+
+
+    high_payroll_col, low_payroll_col = st.columns(2)
+
+
+    # -----------------------------------------------------
+    # HIGHEST PAYROLLS
+    # -----------------------------------------------------
+
+    with high_payroll_col:
+
+        st.markdown("### 💰 Highest Payrolls")
+
+        st.caption(
+            "The NBA's biggest 2026–27 payrolls"
+        )
+
+
+        highest_payroll_chart = (
+            alt.Chart(
+                highest_payroll_teams
+            )
+            .mark_bar()
+            .encode(
+
+                x=alt.X(
+                    "Total_Payroll:Q",
+                    title="2026–27 Payroll",
+                    axis=alt.Axis(
+                        format="$,.0f"
+                    )
+                ),
+
+                y=alt.Y(
+                    "Team:N",
+                    title=None,
+                    sort="-x"
+                ),
+
+                tooltip=[
+                    alt.Tooltip(
+                        "Team:N",
+                        title="Team"
+                    ),
+
+                    alt.Tooltip(
+                        "Total_Payroll:Q",
+                        title="Payroll",
+                        format="$,.0f"
+                    ),
+
+                    alt.Tooltip(
+                        "Payroll_Rank:Q",
+                        title="Payroll Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Weighted_Player_Score:Q",
+                        title="Weighted Performance",
+                        format=".2f"
+                    ),
+
+                    alt.Tooltip(
+                        "Performance_Rank:Q",
+                        title="Performance Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Efficiency_Rank:Q",
+                        title="Efficiency Rank"
+                    )
+                ]
+            )
+            .properties(
+                height=300
+            )
+        )
+
+
+        st.altair_chart(
+            highest_payroll_chart,
+            use_container_width=True
+        )
+
+
+        for _, row in highest_payroll_teams.iterrows():
+
+            st.caption(
+                f"**{row['Team']}** — "
+                f"${row['Total_Payroll']:,.0f} | "
+                f"Performance #{int(row['Performance_Rank'])} | "
+                f"Efficiency #{int(row['Efficiency_Rank'])}"
+            )
+
+
+    # -----------------------------------------------------
+    # LOWEST PAYROLLS
+    # -----------------------------------------------------
+
+    with low_payroll_col:
+
+        st.markdown("### 🏷️ Lowest Payrolls")
+
+        st.caption(
+            "The NBA's smallest 2026–27 payrolls"
+        )
+
+
+        lowest_payroll_chart = (
+            alt.Chart(
+                lowest_payroll_teams
+            )
+            .mark_bar()
+            .encode(
+
+                x=alt.X(
+                    "Total_Payroll:Q",
+                    title="2026–27 Payroll",
+                    axis=alt.Axis(
+                        format="$,.0f"
+                    )
+                ),
+
+                y=alt.Y(
+                    "Team:N",
+                    title=None,
+                    sort="x"
+                ),
+
+                tooltip=[
+                    alt.Tooltip(
+                        "Team:N",
+                        title="Team"
+                    ),
+
+                    alt.Tooltip(
+                        "Total_Payroll:Q",
+                        title="Payroll",
+                        format="$,.0f"
+                    ),
+
+                    alt.Tooltip(
+                        "Payroll_Rank:Q",
+                        title="Payroll Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Weighted_Player_Score:Q",
+                        title="Weighted Performance",
+                        format=".2f"
+                    ),
+
+                    alt.Tooltip(
+                        "Performance_Rank:Q",
+                        title="Performance Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Efficiency_Rank:Q",
+                        title="Efficiency Rank"
+                    )
+                ]
+            )
+            .properties(
+                height=300
+            )
+        )
+
+
+        st.altair_chart(
+            lowest_payroll_chart,
+            use_container_width=True
+        )
+
+
+        for _, row in lowest_payroll_teams.iterrows():
+
+            st.caption(
+                f"**{row['Team']}** — "
+                f"${row['Total_Payroll']:,.0f} | "
+                f"Performance #{int(row['Performance_Rank'])} | "
+                f"Efficiency #{int(row['Efficiency_Rank'])}"
+            )
+
+
+    # =====================================================
+    # SPENDING CONTEXT
+    # =====================================================
+
+    st.markdown("### Spending Context")
+
+
+    highest_spender = (
+        team_df
+        .sort_values(
+            "Total_Payroll",
+            ascending=False
+        )
+        .iloc[0]
+    )
+
+
+    lowest_spender = (
+        team_df
+        .sort_values(
+            "Total_Payroll",
+            ascending=True
+        )
+        .iloc[0]
+    )
+
+
+    payroll_difference = (
+        highest_spender["Total_Payroll"]
+        - lowest_spender["Total_Payroll"]
+    )
+
+
+    context1, context2, context3 = st.columns(3)
+
+
+    with context1:
+
+        st.metric(
+            "Highest-Spending Team",
+            highest_spender["Team"],
+            f"Performance #{int(highest_spender['Performance_Rank'])}"
+        )
+
+
+    with context2:
+
+        st.metric(
+            "Lowest-Spending Team",
+            lowest_spender["Team"],
+            f"Performance #{int(lowest_spender['Performance_Rank'])}"
+        )
+
+
+    with context3:
+
+        st.metric(
+            "Payroll Difference",
+            f"${payroll_difference:,.0f}"
+        )
+        
 # =========================================================
 # TAB 6 — METHODOLOGY
 # =========================================================
