@@ -2222,7 +2222,268 @@ with tab5:
         team_chart,
         use_container_width=True
     )
+    # =====================================================
+    # MOST & LEAST EFFICIENT FRONT OFFICES
+    # =====================================================
 
+    st.divider()
+
+    st.subheader("Front Office Efficiency Leaders")
+
+    st.write(
+        """
+        These rankings compare each team's **payroll percentile**
+        with its **minutes-weighted performance percentile**.
+
+        Teams with a large positive gap are generating stronger
+        performance than their payroll level would suggest, while
+        teams with a large negative gap are spending at a higher
+        level than their performance would suggest.
+        """
+    )
+
+
+    # -----------------------------------------------------
+    # TOP 5 MOST EFFICIENT
+    # -----------------------------------------------------
+
+    most_efficient_teams = (
+        team_df
+        .sort_values(
+            "Efficiency_Gap",
+            ascending=False
+        )
+        .head(5)
+        .copy()
+    )
+
+
+    # -----------------------------------------------------
+    # BOTTOM 5 LEAST EFFICIENT
+    # -----------------------------------------------------
+
+    least_efficient_teams = (
+        team_df
+        .sort_values(
+            "Efficiency_Gap",
+            ascending=True
+        )
+        .head(5)
+        .copy()
+    )
+
+
+    efficient_col, inefficient_col = st.columns(2)
+
+
+    # -----------------------------------------------------
+    # MOST EFFICIENT CHART
+    # -----------------------------------------------------
+
+    with efficient_col:
+
+        st.markdown("### 💎 Most Efficient")
+
+        st.caption(
+            "Performance exceeds payroll level"
+        )
+
+
+        most_efficient_chart = (
+            alt.Chart(
+                most_efficient_teams
+            )
+            .mark_bar()
+            .encode(
+
+                x=alt.X(
+                    "Efficiency_Gap:Q",
+                    title="Efficiency Gap"
+                ),
+
+                y=alt.Y(
+                    "Team:N",
+                    title=None,
+                    sort="-x"
+                ),
+
+                tooltip=[
+                    alt.Tooltip(
+                        "Team:N",
+                        title="Team"
+                    ),
+
+                    alt.Tooltip(
+                        "Total_Payroll:Q",
+                        title="Payroll",
+                        format="$,.0f"
+                    ),
+
+                    alt.Tooltip(
+                        "Payroll_Rank:Q",
+                        title="Payroll Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Weighted_Player_Score:Q",
+                        title="Weighted Performance",
+                        format=".2f"
+                    ),
+
+                    alt.Tooltip(
+                        "Performance_Rank:Q",
+                        title="Performance Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Efficiency_Gap:Q",
+                        title="Efficiency Gap",
+                        format="+.1f"
+                    )
+                ]
+            )
+            .properties(
+                height=300
+            )
+        )
+
+
+        st.altair_chart(
+            most_efficient_chart,
+            use_container_width=True
+        )
+
+
+        # Show rank movement underneath chart
+        for _, row in most_efficient_teams.iterrows():
+
+            st.caption(
+                f"**{row['Team']}** — "
+                f"Payroll #{int(row['Payroll_Rank'])} → "
+                f"Performance #{int(row['Performance_Rank'])}"
+            )
+
+
+    # -----------------------------------------------------
+    # LEAST EFFICIENT CHART
+    # -----------------------------------------------------
+
+    with inefficient_col:
+
+        st.markdown("### 💸 Least Efficient")
+
+        st.caption(
+            "Payroll level exceeds performance"
+        )
+
+
+        least_efficient_chart = (
+            alt.Chart(
+                least_efficient_teams
+            )
+            .mark_bar()
+            .encode(
+
+                x=alt.X(
+                    "Efficiency_Gap:Q",
+                    title="Efficiency Gap"
+                ),
+
+                y=alt.Y(
+                    "Team:N",
+                    title=None,
+                    sort="x"
+                ),
+
+                tooltip=[
+                    alt.Tooltip(
+                        "Team:N",
+                        title="Team"
+                    ),
+
+                    alt.Tooltip(
+                        "Total_Payroll:Q",
+                        title="Payroll",
+                        format="$,.0f"
+                    ),
+
+                    alt.Tooltip(
+                        "Payroll_Rank:Q",
+                        title="Payroll Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Weighted_Player_Score:Q",
+                        title="Weighted Performance",
+                        format=".2f"
+                    ),
+
+                    alt.Tooltip(
+                        "Performance_Rank:Q",
+                        title="Performance Rank"
+                    ),
+
+                    alt.Tooltip(
+                        "Efficiency_Gap:Q",
+                        title="Efficiency Gap",
+                        format="+.1f"
+                    )
+                ]
+            )
+            .properties(
+                height=300
+            )
+        )
+
+
+        st.altair_chart(
+            least_efficient_chart,
+            use_container_width=True
+        )
+
+
+        # Show rank movement underneath chart
+        for _, row in least_efficient_teams.iterrows():
+
+            st.caption(
+                f"**{row['Team']}** — "
+                f"Payroll #{int(row['Payroll_Rank'])} → "
+                f"Performance #{int(row['Performance_Rank'])}"
+            )
+
+
+    # -----------------------------------------------------
+    # EXPLANATION
+    # -----------------------------------------------------
+
+    with st.expander(
+        "How is Front Office Efficiency calculated?"
+    ):
+
+        st.markdown(
+            """
+            **Step 1 — Payroll Percentile**  
+            Each team's total 2026–27 payroll is ranked against
+            the other NBA teams in the database.
+
+            **Step 2 — Performance Percentile**  
+            Each team's performance is measured using its
+            **minutes-weighted Overall Player Score**.
+
+            Players receiving more playing time therefore have
+            more influence on the team's performance score.
+
+            **Step 3 — Efficiency Gap**
+
+            **Efficiency Gap = Performance Percentile − Payroll Percentile**
+
+            A **positive** number means the team's performance
+            ranks higher than its spending.
+
+            A **negative** number means the team's spending
+            ranks higher than its performance.
+            """
+        )
 
 # =========================================================
 # TAB 6 — METHODOLOGY
