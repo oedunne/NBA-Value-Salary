@@ -139,9 +139,12 @@ st.title(
 )
 
 st.markdown(
-    "### Who is actually worth what they're being paid?"
+    "*An independent sports analytics project by Owen Dunne*"
 )
 
+st.markdown(
+    "### Who is actually worth what they're being paid?"
+)
 st.write(
     """
     NBA Player Value Analytics is an independent sports analytics
@@ -3277,5 +3280,5 @@ with tab6:
 st.divider()
 
 st.caption(
-    "NBA Player Value Analytics — Independent sports business analytics project"
+    "NBA Player Value Analytics — Independent sports business analytics project - Created by Owen Dunne"
 )
