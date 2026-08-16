@@ -306,12 +306,13 @@ st.divider()
 # NAVIGATION
 # =========================================================
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     [
         "💰 Value Leaderboard",
         "⭐ Player Rankings",
         "🔎 Player Explorer",
         "⚔️ Compare Players",
+        "🏢 Front Office Efficiency",
         "🧠 Methodology"
     ]
 )
@@ -1967,7 +1968,7 @@ with tab4:
 # TAB 5 — METHODOLOGY
 # =========================================================
 
-with tab5:
+with tab6:
 
     st.header(
         "Methodology"
