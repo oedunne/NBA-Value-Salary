@@ -273,7 +273,6 @@ team_df = team_df.drop(
 team_df = team_df.sort_values(
     "Efficiency_Rank"
 ).reset_index(drop=True)
-st.write(team_df.head(10))
 
 # =========================================================
 # HOMEPAGE / HERO
