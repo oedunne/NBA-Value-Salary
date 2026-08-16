@@ -114,7 +114,166 @@ master_df["Contract_Efficiency_Gap"] = (
     -
     master_df["Salary_Percentile"]
 )
+# =========================================================
+# FRONT OFFICE / TEAM METRICS
+# =========================================================
 
+# Only use rows with a valid team
+team_source_df = master_df[
+    master_df["Team"].notna()
+].copy()
+
+# Minutes-weighted player score contribution
+team_source_df["Weighted_Player_Score"] = (
+    team_source_df["Overall_Player_Score"]
+    * team_source_df["Minutes_Per_Game"]
+)
+
+# Build one row per team
+team_df = (
+    team_source_df
+    .groupby("Team")
+    .agg(
+        Total_Payroll=("Salary", "sum"),
+        Player_Count=("Player", "count"),
+
+        Avg_OVS=("OVS", "mean"),
+        Avg_DVS=("DVS", "mean"),
+        Avg_AVS=("AVS", "mean"),
+
+        Avg_Player_Score=("Overall_Player_Score", "mean"),
+
+        Total_Weighted_Score=("Weighted_Player_Score", "sum"),
+        Total_Minutes=("Minutes_Per_Game", "sum"),
+
+        Avg_Value_Score=("Final_Value_Score", "mean")
+    )
+    .reset_index()
+)
+
+# Minutes-weighted team performance
+team_df["Weighted_Player_Score"] = (
+    team_df["Total_Weighted_Score"]
+    / team_df["Total_Minutes"]
+)
+
+# Payroll rank: #1 = highest payroll
+team_df["Payroll_Rank"] = (
+    team_df["Total_Payroll"]
+    .rank(
+        ascending=False,
+        method="min"
+    )
+    .astype(int)
+)
+
+# Performance rank: #1 = best weighted player performance
+team_df["Performance_Rank"] = (
+    team_df["Weighted_Player_Score"]
+    .rank(
+        ascending=False,
+        method="min"
+    )
+    .astype(int)
+)
+
+# Payroll percentile
+team_df["Payroll_Percentile"] = (
+    team_df["Total_Payroll"]
+    .rank(
+        pct=True,
+        method="average"
+    )
+    * 100
+)
+
+# Performance percentile
+team_df["Performance_Percentile"] = (
+    team_df["Weighted_Player_Score"]
+    .rank(
+        pct=True,
+        method="average"
+    )
+    * 100
+)
+
+# Positive = getting more performance than payroll level suggests
+# Negative = spending more than performance level suggests
+team_df["Front_Office_Efficiency_Gap"] = (
+    team_df["Performance_Percentile"]
+    - team_df["Payroll_Percentile"]
+)
+
+# Efficiency rank: #1 = largest positive efficiency gap
+team_df["Efficiency_Rank"] = (
+    team_df["Front_Office_Efficiency_Gap"]
+    .rank(
+        ascending=False,
+        method="min"
+    )
+    .astype(int)
+)
+
+# Count Elite Bargains by team
+elite_bargain_counts = (
+    master_df[
+        master_df["Performance_Percentile"] >= 80
+    ]
+    .groupby("Team")
+    .size()
+    .rename("Elite_Bargains")
+)
+
+# Count Least Efficient Contracts by team
+inefficient_contract_counts = (
+    master_df[
+        (master_df["Salary_Percentile"] >= 80)
+        &
+        (master_df["Performance_Percentile"] < 50)
+    ]
+    .groupby("Team")
+    .size()
+    .rename("Inefficient_Contracts")
+)
+
+# Add counts to team table
+team_df = team_df.merge(
+    elite_bargain_counts,
+    on="Team",
+    how="left"
+)
+
+team_df = team_df.merge(
+    inefficient_contract_counts,
+    on="Team",
+    how="left"
+)
+
+team_df["Elite_Bargains"] = (
+    team_df["Elite_Bargains"]
+    .fillna(0)
+    .astype(int)
+)
+
+team_df["Inefficient_Contracts"] = (
+    team_df["Inefficient_Contracts"]
+    .fillna(0)
+    .astype(int)
+)
+
+# Clean helper columns
+team_df = team_df.drop(
+    columns=[
+        "Total_Weighted_Score",
+        "Total_Minutes"
+    ]
+)
+
+# Sort by efficiency rank
+team_df = team_df.sort_values(
+    "Efficiency_Rank"
+).reset_index(drop=True)
+st.write(team_df.head(10))
 
 # =========================================================
 # HOMEPAGE / HERO
